@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE連携 - 増員 CONTROL HUB</title>
+    <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0f1c 0%, #1a1f3c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #4ade80;
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .status {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .status.loading {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .status.success {
+            color: #4ade80;
+        }
+
+        .status.error {
+            color: #f87171;
+        }
+
+        .status-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .status-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .form-section {
+            margin-top: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus {
+            border-color: #4ade80;
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        .user-info .name {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .user-info .uid {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(74, 222, 128, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-close {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .error-message {
+            color: #f87171;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: #000;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>📋 増員 CONTROL HUB</h1>
+            <p>LINE通知連携</p>
+        </div>
+
+        <!-- ローディング状態 -->
+        <div id="loading" class="status loading">
+            <div class="status-icon">⏳</div>
+            <div class="status-text">LINE情報を取得中...</div>
+        </div>
+
+        <!-- メールアドレス入力フォーム -->
+        <div id="emailForm" class="hidden">
+            <div class="status">
+                <div class="status-icon">📧</div>
+                <div class="status-text">カレンダーアプリで使用している<br>メールアドレスを入力してください</div>
+            </div>
+            <div id="lineUserInfo" class="user-info"></div>
+            <div class="form-section">
+                <label class="form-label">メールアドレス</label>
+                <input type="email" id="emailInput" class="form-input" placeholder="example@email.com" required>
+            </div>
+            <p id="formError" class="error-message hidden"></p>
+            <button id="submitBtn" class="btn btn-primary" onclick="submitEmail()">
+                連携する
+            </button>
+        </div>
+
+        <!-- 成功状態 -->
+        <div id="success" class="status success hidden">
+            <div class="status-icon">✅</div>
+            <div class="status-text">LINE連携が完了しました！<br><br>申し込み時にLINEで通知が届きます。</div>
+            <button class="btn btn-close" onclick="closeLiff()">閉じる</button>
+        </div>
+
+        <!-- エラー状態 -->
+        <div id="error" class="status error hidden">
+            <div class="status-icon">❌</div>
+            <div class="status-text" id="errorText">エラーが発生しました</div>
+            <button class="btn btn-primary" onclick="retry()">再試行</button>
+        </div>
+
+        <!-- LINE外でアクセス -->
+        <div id="notInLine" class="status hidden">
+            <div class="status-icon">📱</div>
+            <div class="status-text">
+                LINEアプリからアクセスしてください。<br><br>
+                公式LINEのメニューから<br>「LINE連携」をタップしてください。
+            </div>
+        </div>
+    </div>
+
+    <!-- vConsole デバッグ用（LINEアプリ内でもコンソールが見える） -->
+    <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+    <script>
+        // デバッグモード: URLに ?debug=1 があるか、常に有効
+        var vConsole = new window.VConsole();
+        console.log('=== LIFF デバッグ開始 ===');
+        console.log('UserAgent:', navigator.userAgent);
+        console.log('URL:', location.href);
+    </script>
+
+    <script>
+        const LIFF_ID = '2009077734-ikkJ1w1D';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzfSgWz8ECzu5LYj6ImAQ9pLPwSTTnkv0Mw3BGdF7PDQuSbiTMcEdAtp2JBrG6Fd7mCiQ/exec';
+
+        let lineProfile = null;
+
+        // ステータステキストを更新するヘルパー
+        function updateLoadingText(text) {
+            const el = document.querySelector('#loading .status-text');
+            if (el) el.textContent = text;
+        }
+
+        // JSONP方式でGAS APIを呼び出す（CORS回避）
+        function fetchFromGAS(params) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'liffCallback_' + Date.now();
+                const urlParams = new URLSearchParams(params);
+                urlParams.append('callback', callbackName);
+
+                window[callbackName] = function (data) {
+                    delete window[callbackName];
+                    if (script.parentNode) document.body.removeChild(script);
+                    resolve(data);
+                };
+
+                const script = document.createElement('script');
+                script.src = `${GAS_URL}?${urlParams.toString()}`;
+                script.onerror = function () {
+                    delete window[callbackName];
+                    if (script.parentNode) document.body.removeChild(script);
+                    reject(new Error('ネットワークエラー'));
+                };
+
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        if (script.parentNode) document.body.removeChild(script);
+                        reject(new Error('タイムアウト（15秒）'));
+                    }
+                }, 15000);
+
+                document.body.appendChild(script);
+            });
+        }
+
+        async function initializeLiff() {
+            try {
+                console.log('[1/5] liff.init 開始... LIFF_ID:', LIFF_ID);
+                updateLoadingText('LIFF SDK を初期化中...');
+
+                // タイムアウト付きでliff.initを実行
+                const initPromise = liff.init({ liffId: LIFF_ID });
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('liff.init がタイムアウトしました（15秒）。LIFF IDが正しいか、LINEアプリ内で開いているか確認してください。')), 15000)
+                );
+
+                await Promise.race([initPromise, timeoutPromise]);
+                console.log('[2/5] liff.init 完了');
+
+                // LINEアプリ内かチェック
+                const isInClient = liff.isInClient();
+                console.log('[3/5] isInClient:', isInClient);
+                updateLoadingText('LINE環境を確認中...');
+
+                if (!isInClient) {
+                    console.log('→ LINEアプリ外からのアクセス');
+                    showNotInLine();
+                    return;
+                }
+
+                // ログインチェック
+                const isLoggedIn = liff.isLoggedIn();
+                console.log('[4/5] isLoggedIn:', isLoggedIn);
+
+                if (!isLoggedIn) {
+                    console.log('→ 未ログイン、liff.login() を呼び出し');
+                    updateLoadingText('LINEログイン中...');
+                    liff.login();
+                    return;
+                }
+
+                // プロフィール取得
+                console.log('[5/5] getProfile 開始...');
+                updateLoadingText('プロフィールを取得中...');
+                lineProfile = await liff.getProfile();
+                console.log('[5/5] getProfile 完了:', JSON.stringify(lineProfile));
+
+                // メールアドレス入力フォームを表示
+                showEmailForm(lineProfile);
+
+            } catch (error) {
+                console.error('LIFF初期化エラー:', error);
+                showError(error.message || String(error));
+            }
+        }
+
+        function showEmailForm(profile) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('emailForm').classList.remove('hidden');
+
+            document.getElementById('lineUserInfo').innerHTML = `
+                <img src="${profile.pictureUrl || ''}" alt="">
+                <div>
+                    <div class="name">${profile.displayName}</div>
+                    <div class="uid">LINE連携中</div>
+                </div>
+            `;
+        }
+
+        async function submitEmail() {
+            const email = document.getElementById('emailInput').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const formError = document.getElementById('formError');
+
+            formError.classList.add('hidden');
+
+            if (!email) {
+                formError.textContent = 'メールアドレスを入力してください';
+                formError.classList.remove('hidden');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                formError.textContent = '正しいメールアドレスを入力してください';
+                formError.classList.remove('hidden');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>連携中...';
+
+            try {
+                console.log('linkLineToEmail 呼び出し中...');
+
+                const result = await fetchFromGAS({
+                    action: 'linkLineToEmail',
+                    lineUid: lineProfile.userId,
+                    lineDisplayName: lineProfile.displayName,
+                    email: email
+                });
+
+                console.log('linkLineToEmail 結果:', JSON.stringify(result));
+
+                if (result.success && result.linked) {
+                    showSuccess();
+                } else if (result.success && !result.linked) {
+                    formError.textContent = result.message || 'このメールアドレスはスタッフ名簿に登録されていません';
+                    formError.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '連携する';
+                } else {
+                    throw new Error(result.error || '連携に失敗しました');
+                }
+            } catch (error) {
+                console.error('連携エラー:', error);
+                formError.textContent = error.message;
+                formError.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '連携する';
+            }
+        }
+
+        function showSuccess() {
+            document.getElementById('emailForm').classList.add('hidden');
+            document.getElementById('success').classList.remove('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('errorText').textContent = message;
+        }
+
+        function showNotInLine() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('notInLine').classList.remove('hidden');
+        }
+
+        function closeLiff() {
+            liff.closeWindow();
+        }
+
+        function retry() {
+            location.reload();
+        }
+
+        // Enter キーで送信
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('emailInput').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    submitEmail();
+                }
+            });
+        });
+
+        // 初期化
+        initializeLiff();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="増員 CONTROL HUB 2.0 - スタッフ募集カレンダー">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>増員 CONTROL HUB 2.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <?!= include('Styles'); ?>
+</head>
+
+<body>
+    <!-- ログイン画面 -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-container">
+            <div class="login-logo">
+                <h1 class="login-title">増員 CONTROL HUB</h1>
+                <span class="login-version">2.0</span>
+            </div>
+            <form class="login-form" id="loginForm">
+                <div class="login-input-group">
+                    <label for="password" class="login-label">パスワード</label>
+                    <input type="password" id="password" class="login-input" placeholder="パスワードを入力" required>
+                </div>
+                <p class="login-error" id="loginError"></p>
+                <button type="submit" class="login-btn">ログイン</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ヘッダー（ログイン後に表示） -->
+    <header class="header app-content hidden" id="appHeader">
+        <div class="header-content">
+            <h1 class="logo">増員 CONTROL HUB</h1>
+            <span class="version-badge">2.0</span>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ（ログイン後に表示） -->
+    <main class="main-content app-content hidden" id="appMain">
+        <!-- 凡例 -->
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-dot stage"></span>
+                <span>舞台</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot sound"></span>
+                <span>音響</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot lighting"></span>
+                <span>照明</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot multiple"></span>
+                <span>複数</span>
+            </div>
+        </div>
+
+        <!-- カレンダーグリッド -->
+        <div class="calendar-container">
+            <div class="calendar-top">
+                <div class="calendar-title-area">
+                    <h2 class="current-month" id="currentMonth">2026年 1月</h2>
+                    <button class="today-btn" id="todayBtn">今日</button>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn prev-btn" id="prevMonth" aria-label="前月">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="nav-btn next-btn" id="nextMonth" aria-label="翌月">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="calendar-header">
+                <div class="weekday sun">日</div>
+                <div class="weekday">月</div>
+                <div class="weekday">火</div>
+                <div class="weekday">水</div>
+                <div class="weekday">木</div>
+                <div class="weekday">金</div>
+                <div class="weekday sat">土</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- カレンダー日付がJSで挿入される -->
+            </div>
+        </div>
+    </main>
+
+    <!-- イベント選択モーダル -->
+    <div class="event-modal-overlay" id="eventModalOverlay"></div>
+    <div class="event-modal" id="eventModal">
+        <div class="event-modal-header">
+            <h3 class="event-modal-title" id="eventModalTitle">1月15日のイベント</h3>
+            <button class="event-modal-close" id="eventModalClose">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="event-modal-list" id="eventModalList">
+            <!-- イベントリストがJSで挿入される -->
+        </div>
+    </div>
+
+    <!-- ドロワー（詳細画面） -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-inner" id="drawerInner">
+            <button class="drawer-close" id="drawerClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+
+            <div class="drawer-header">
+                <span class="drawer-section-label" id="drawerSectionLabel">舞台</span>
+                <h2 class="drawer-title" id="drawerHallName">大ホール</h2>
+            </div>
+
+            <div class="drawer-info-grid">
+                <div class="info-item">
+                    <span class="info-label">日付</span>
+                    <span class="info-value" id="drawerDate">2026年1月15日(水)</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">催事名</span>
+                    <span class="info-value" id="drawerEventName">春のコンサート</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">区分</span>
+                    <span class="info-value" id="drawerTime">全日</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">募集人数</span>
+                    <span class="info-value" id="drawerStatus">0 / 0名</span>
+                </div>
+            </div>
+
+            <div class="drawer-content-section">
+                <h3 class="content-section-title">増員内容</h3>
+                <p class="drawer-description" id="drawerDescription">
+                    イベントの説明文がここに表示されます。
+                </p>
+            </div>
+
+            <div class="drawer-notice" id="drawerNotice">
+                <span class="notice-icon">ⓘ</span>
+                <div class="notice-text">
+                    <span id="noticeTitle">募集中です</span><br>
+                    <span id="noticeMessage">ぜひご応募ください！</span>
+                </div>
+            </div>
+
+            <div class="drawer-form-section">
+                <h3 class="form-section-title">応募フォーム</h3>
+                <form id="applyForm">
+                    <div class="form-group">
+                        <label for="userName" class="form-label">お名前 *</label>
+                        <input type="text" id="userName" class="form-input" placeholder="山田 太郎" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lineId" class="form-label">LINE ID *</label>
+                        <input type="text" id="lineId" class="form-input" placeholder="your_line_id" required>
+                        <span class="form-hint">※ 確定通知の送信に使用します</span>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        応募する
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認ダイアログ -->
+    <div class="confirm-dialog hidden" id="confirmDialog">
+        <div class="confirm-content">
+            <div class="confirm-icon">⚠️</div>
+            <h3 class="confirm-title">まだ応募は完了してません。</h3>
+            <p class="confirm-message">下記手順に従って応募を完了させて下さい。</p>
+            <button class="confirm-btn" id="confirmClose">閉じる</button>
+        </div>
+    </div>
+
+    <?!= include('Calendar'); ?>
+    <?!= include('Drawer'); ?>
+
+    <script>
+        // ログイン処理
+        (function () {
+            const PASSWORD = 'S!GMA';
+            const SESSION_KEY = 'zouin_logged_in';
+
+            const loginScreen = document.getElementById('loginScreen');
+            const loginForm = document.getElementById('loginForm');
+            const loginError = document.getElementById('loginError');
+            const appContents = document.querySelectorAll('.app-content');
+
+            function checkSession() {
+                const isLoggedIn = sessionStorage.getItem(SESSION_KEY);
+                if (isLoggedIn === 'true') {
+                    showApp();
+                }
+            }
+
+            function showApp() {
+                loginScreen.classList.add('hidden');
+                appContents.forEach(el => el.classList.remove('hidden'));
+            }
+
+            loginForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const password = document.getElementById('password').value;
+
+                if (password === PASSWORD) {
+                    sessionStorage.setItem(SESSION_KEY, 'true');
+                    showApp();
+                } else {
+                    loginError.textContent = 'パスワードが正しくありません';
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                }
+            });
+
+            checkSession();
+        })();
+    </script>
+</body>
+
+</html>

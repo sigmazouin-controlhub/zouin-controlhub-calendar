@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="増員 CONTROL HUB 2.0 - スタッフ募集カレンダー">
+    <!-- キャッシュ無効化 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>増員 CONTROL HUB 2.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <!-- ログイン画面 -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-container">
+            <div class="login-logo">
+                <img src="assets/logo.jpg" alt="ロゴ" class="login-logo-icon">
+                <h1 class="login-title">増員 CONTROL HUB</h1>
+                <span class="login-version">2.0</span>
+            </div>
+            <form class="login-form" id="loginForm">
+                <div class="login-input-group">
+                    <label for="staffName" class="login-label">メールアドレスを入力してください</label>
+                    <input type="email" id="staffName" class="login-input" placeholder="example@email.com" required
+                        autocomplete="email">
+                </div>
+                <p class="login-error" id="loginError"></p>
+                <button type="submit" class="login-btn" id="loginBtn">
+                    <span class="btn-text">ログイン</span>
+                    <span class="btn-spinner"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ヘッダー（ログイン後に表示） -->
+    <header class="header app-content hidden" id="appHeader">
+        <div class="header-content">
+            <h1 class="logo">
+                <img src="assets/logo.jpg" alt="ロゴ" class="logo-icon">
+                増員 CONTROL HUB
+            </h1>
+            <span class="version-badge">2.0</span>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ（ログイン後に表示） -->
+    <main class="main-content app-content hidden" id="appMain">
+        <!-- 凡例 -->
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-dot stage"></span>
+                <span>舞台</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot sound"></span>
+                <span>音響</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot lighting"></span>
+                <span>照明</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-dot multiple"></span>
+                <span>複数</span>
+            </div>
+        </div>
+
+        <!-- カレンダーグリッド -->
+        <div class="calendar-container">
+            <!-- カレンダーヘッダー（年月＋ナビ） -->
+            <div class="calendar-top">
+                <div class="calendar-title-area">
+                    <h2 class="current-month" id="currentMonth">2026年 1月</h2>
+                    <button class="today-btn" id="todayBtn">今日</button>
+                </div>
+                <div class="nav-buttons">
+                    <button class="nav-btn prev-btn" id="prevMonth" aria-label="前月">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="nav-btn next-btn" id="nextMonth" aria-label="翌月">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="calendar-header">
+                <div class="weekday sun">日</div>
+                <div class="weekday">月</div>
+                <div class="weekday">火</div>
+                <div class="weekday">水</div>
+                <div class="weekday">木</div>
+                <div class="weekday">金</div>
+                <div class="weekday sat">土</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- カレンダー日付がJSで挿入される -->
+            </div>
+        </div>
+    </main>
+
+    <!-- イベント選択モーダル -->
+    <div class="event-modal-overlay" id="eventModalOverlay"></div>
+    <div class="event-modal" id="eventModal">
+        <div class="event-modal-header">
+            <h3 class="event-modal-title" id="eventModalTitle">1月15日のイベント</h3>
+            <button class="event-modal-close" id="eventModalClose">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="event-modal-list" id="eventModalList">
+            <!-- イベントリストがJSで挿入される -->
+        </div>
+    </div>
+
+    <!-- ドロワー（詳細画面） -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-inner" id="drawerInner">
+            <!-- 閉じるボタン -->
+            <button class="drawer-close" id="drawerClose">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+
+            <!-- ヘッダー部分（セクション＋ホール名） -->
+            <div class="drawer-header">
+                <span class="drawer-section-label" id="drawerSectionLabel">舞台</span>
+                <h2 class="drawer-title" id="drawerHallName">大ホール</h2>
+            </div>
+
+            <!-- 情報グリッド -->
+            <div class="drawer-info-grid">
+                <div class="info-item">
+                    <span class="info-label">日付</span>
+                    <span class="info-value" id="drawerDate">2026年1月15日(水)</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">催事名</span>
+                    <span class="info-value" id="drawerEventName">春のコンサート</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">区分</span>
+                    <span class="info-value" id="drawerTime">全日</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">募集人数</span>
+                    <span class="info-value" id="drawerStatus">0 / 0名</span>
+                </div>
+            </div>
+
+            <!-- 増員内容 -->
+            <div class="drawer-content-section">
+                <h3 class="content-section-title">増員内容</h3>
+                <p class="drawer-description" id="drawerDescription">
+                    イベントの説明文がここに表示されます。
+                </p>
+            </div>
+
+            <!-- 定員状況メッセージ -->
+            <div class="drawer-notice" id="drawerNotice">
+                <span class="notice-icon">ⓘ</span>
+                <div class="notice-text">
+                    <span id="noticeTitle">募集中です</span><br>
+                    <span id="noticeMessage">ぜひご応募ください！</span>
+                </div>
+            </div>
+
+            <!-- 応募フォーム -->
+            <div class="drawer-form-section">
+                <h3 class="form-section-title">応募フォーム</h3>
+                <form id="applyForm">
+                    <div class="form-group">
+                        <label for="userName" class="form-label">お名前</label>
+                        <input type="text" id="userName" class="form-input autofilled" placeholder="山田 太郎" readonly
+                            required>
+                        <span class="form-hint autofill-hint">🔗 ログイン情報から自動入力</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffHall" class="form-label">所属ホール</label>
+                        <input type="text" id="staffHall" class="form-input autofilled" placeholder="所属ホール" readonly
+                            required>
+                        <span class="form-hint autofill-hint">🔗 ログイン情報から自動入力</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="staffSection" class="form-label">セクション</label>
+                        <input type="text" id="staffSection" class="form-input autofilled" placeholder="セクション" readonly
+                            required>
+                        <span class="form-hint autofill-hint">🔗 ログイン情報から自動入力</span>
+                    </div>
+                    <!-- 日付選択（連日イベント用、動的に表示） -->
+                    <div class="form-group date-selection-group hidden" id="dateSelectionGroup">
+                        <label class="form-label">応募日程 *</label>
+                        <div class="date-tabs" id="dateTabs">
+                            <!-- 動的に生成 -->
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        応募する
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認ダイアログ -->
+    <div class="confirm-dialog hidden" id="confirmDialog">
+        <div class="confirm-content">
+            <div class="confirm-icon">⚠️</div>
+            <h3 class="confirm-title">まだ応募は完了してません。</h3>
+            <p class="confirm-message">下記手順に従って応募を完了させて下さい。</p>
+            <button class="confirm-btn" id="confirmClose">閉じる</button>
+        </div>
+    </div>
+
+
+
+    <script src="js/calendar.js?v=2"></script>
+    <script src="js/drawer.js?v=2"></script>
+    <script>
+        // スタッフ認証処理
+        (function () {
+            // GAS Web App URL
+            const GAS_URL = 'https://script.google.com/macros/s/AKfycbzfSgWz8ECzu5LYj6ImAQ9pLPwSTTnkv0Mw3BGdF7PDQuSbiTMcEdAtp2JBrG6Fd7mCiQ/exec';
+            const STORAGE_KEY = 'zouin_staff_name';
+
+            const loginScreen = document.getElementById('loginScreen');
+            const loginForm = document.getElementById('loginForm');
+            const loginError = document.getElementById('loginError');
+            const loginBtn = document.getElementById('loginBtn');
+            const staffNameInput = document.getElementById('staffName');
+            const appContents = document.querySelectorAll('.app-content');
+
+            // アプリ表示
+            function showApp(staffName) {
+                loginScreen.classList.add('hidden');
+                appContents.forEach(el => el.classList.remove('hidden'));
+                // グローバルに名前を保存（drawer.jsで使用）
+                window.loggedInStaffName = staffName;
+
+                // お名前フィールドを自動入力
+                const userNameInput = document.getElementById('userName');
+                if (userNameInput) userNameInput.value = staffName;
+
+                // 所属情報をAPIから取得して自動入力
+                loadStaffProfile();
+            }
+
+            // スタッフプロフィールを取得してフォームに自動入力
+            async function loadStaffProfile() {
+                const email = localStorage.getItem(STORAGE_KEY);
+                if (!email) return;
+
+                try {
+                    console.log('所属情報を取得中...');
+                    const result = await fetchFromGAS({
+                        action: 'getStaffInfo',
+                        email: email
+                    });
+
+                    console.log('所属情報の応答:', JSON.stringify(result));
+
+                    if (result.success && result.found) {
+                        const hallInput = document.getElementById('staffHall');
+                        const sectionInput = document.getElementById('staffSection');
+
+                        if (hallInput && result.staffHall) {
+                            hallInput.value = result.staffHall;
+                        }
+                        if (sectionInput && result.staffSection) {
+                            sectionInput.value = result.staffSection;
+                        }
+
+                        // localStorageにも保存
+                        localStorage.setItem('zouin_staff_hall', result.staffHall || '');
+                        localStorage.setItem('zouin_staff_section', result.staffSection || '');
+
+                        // 管理者フラグを保存
+                        localStorage.setItem('zouin_is_admin', result.isAdmin ? 'true' : 'false');
+                        window.isAdmin = !!result.isAdmin;
+                        console.log('管理者:', result.isAdmin);
+                    }
+                } catch (error) {
+                    console.error('所属情報取得エラー:', error);
+                }
+            }
+
+            // GAS API呼び出し汎用関数（JSONP方式）
+            function fetchFromGAS(params) {
+                return new Promise((resolve) => {
+                    const callbackName = 'gasCallback_' + Date.now();
+                    const urlParams = new URLSearchParams(params);
+                    urlParams.append('callback', callbackName);
+
+                    window[callbackName] = function (data) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        resolve(data);
+                    };
+
+                    const script = document.createElement('script');
+                    script.src = `${GAS_URL}?${urlParams.toString()}`;
+                    script.onerror = function () {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        resolve({ success: false, error: 'ネットワークエラー' });
+                    };
+
+                    setTimeout(() => {
+                        if (window[callbackName]) {
+                            delete window[callbackName];
+                            if (script.parentNode) document.body.removeChild(script);
+                            resolve({ success: false, error: 'タイムアウト' });
+                        }
+                    }, 10000);
+
+                    document.body.appendChild(script);
+                });
+            }
+
+            // ローディング状態の設定
+            function setLoading(isLoading) {
+                loginBtn.classList.toggle('loading', isLoading);
+                loginBtn.disabled = isLoading;
+                staffNameInput.disabled = isLoading;
+            }
+
+            // エラー表示
+            function showError(message) {
+                loginError.textContent = message;
+            }
+
+            // GAS APIで名簿照合（JSONP方式でCORS回避）
+            function verifyStaff(name) {
+                return new Promise((resolve) => {
+                    const callbackName = 'authCallback_' + Date.now();
+                    const params = new URLSearchParams({
+                        action: 'verifyStaff',
+                        name: name,
+                        callback: callbackName
+                    });
+
+                    // コールバック関数を登録
+                    window[callbackName] = function (data) {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        resolve(data);
+                    };
+
+                    // script要素で呼び出し
+                    const script = document.createElement('script');
+                    script.src = `${GAS_URL}?${params.toString()}`;
+                    script.onerror = function () {
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                        resolve({ success: false, error: 'ネットワークエラー' });
+                    };
+
+                    // タイムアウト処理
+                    setTimeout(() => {
+                        if (window[callbackName]) {
+                            delete window[callbackName];
+                            if (script.parentNode) {
+                                document.body.removeChild(script);
+                            }
+                            resolve({ success: false, error: 'タイムアウト' });
+                        }
+                    }, 10000);
+
+                    document.body.appendChild(script);
+                });
+            }
+
+            // 自動認証チェック（localStorageから）
+            async function checkSavedAuth() {
+                const savedEmail = localStorage.getItem(STORAGE_KEY);
+                if (!savedEmail) return;
+
+                // 保存されたメールアドレスを入力欄にセット
+                staffNameInput.value = savedEmail;
+                setLoading(true);
+
+                const result = await verifyStaff(savedEmail);
+                setLoading(false);
+
+                console.log('verifyStaff応答:', JSON.stringify(result));
+
+                if (result.success && result.verified) {
+                    // B列の名前を保存・使用
+                    if (result.staffName) {
+                        localStorage.setItem('zouin_staff_display_name', result.staffName);
+                        window.loggedInStaffName = result.staffName;
+                    }
+                    console.log('staffHall:', result.staffHall, 'staffSection:', result.staffSection);
+                    showApp(result.staffName || savedEmail);
+                } else {
+                    // 保存された認証が無効な場合はクリア
+                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem('zouin_staff_display_name');
+                    staffNameInput.value = '';
+                    if (result.success && !result.verified) {
+                        // 名簿から削除された場合
+                        showError('アカウントの有効期限が切れたか、登録が解除されました。管理者に確認してください。');
+                    }
+                }
+            }
+
+            // 強制ログアウト（外部から呼び出し可能）
+            window.forceLogout = function (message) {
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem('zouin_staff_display_name');
+                window.loggedInStaffName = null;
+                loginScreen.classList.remove('hidden');
+                appContents.forEach(el => el.classList.add('hidden'));
+                staffNameInput.value = '';
+                showError(message || 'アカウントの有効期限が切れたか、登録が解除されました。管理者に確認してください。');
+            };
+
+            // リアルタイム権限チェック（外部から呼び出し可能）
+            window.checkPermission = async function () {
+                const savedName = localStorage.getItem(STORAGE_KEY);
+                if (!savedName) return false;
+
+                const result = await verifyStaff(savedName);
+                if (!result.success || !result.verified) {
+                    window.forceLogout();
+                    return false;
+                }
+                return true;
+            };
+
+            // ログインフォーム送信
+            loginForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const email = staffNameInput.value.trim();
+
+                if (!email) {
+                    showError('メールアドレスを入力してください');
+                    return;
+                }
+
+                showError('');
+                setLoading(true);
+
+                const result = await verifyStaff(email);
+                setLoading(false);
+
+                if (result.success && result.verified) {
+                    // 認証成功: localStorageに保存してアプリ表示
+                    localStorage.setItem(STORAGE_KEY, email);
+                    // B列の名前も保存
+                    if (result.staffName) {
+                        localStorage.setItem('zouin_staff_display_name', result.staffName);
+                        window.loggedInStaffName = result.staffName;
+                    }
+                    showApp(result.staffName || email);
+                } else if (result.success && !result.verified) {
+                    // 名簿に存在しない
+                    showError('登録が確認できません。フォームから登録するか、管理者に連絡してください。');
+                } else {
+                    // APIエラー
+                    showError('認証に失敗しました。しばらく待ってから再度お試しください。');
+                    console.error('API Error:', result.error);
+                }
+            });
+
+            // 初期化: 保存された認証をチェック
+            checkSavedAuth();
+        })();
+    </script>
+</body>
+
+</html>
