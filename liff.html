@@ -177,6 +177,56 @@
             text-align: center;
         }
 
+        .consent-screen {
+            text-align: center;
+        }
+
+        .consent-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .consent-title {
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .consent-list {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+
+        .consent-list li {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            list-style: none;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .consent-list li::before {
+            content: '✅';
+            position: absolute;
+            left: 0;
+        }
+
+        .consent-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .consent-note {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
         .hidden {
             display: none;
         }
@@ -208,8 +258,21 @@
             <p>LINE通知連携</p>
         </div>
 
+        <!-- 同意説明画面 -->
+        <div id="consent" class="consent-screen">
+            <div class="consent-icon">🔒</div>
+            <div class="consent-title">以下の情報を使用します</div>
+            <ul class="consent-list">
+                <li>LINEプロフィール（名前・アイコン）</li>
+                <li>メールアドレスとのLINEアカウントの紐付け</li>
+                <li>増員申し込み時のLINE通知の送信</li>
+            </ul>
+            <p class="consent-note">※ 上記以外の目的では使用しません。<br>次の画面でLINEからの認証が求められます。</p>
+            <button class="btn btn-primary" onclick="startLiffInit()">同意して進む</button>
+        </div>
+
         <!-- ローディング状態 -->
-        <div id="loading" class="status loading">
+        <div id="loading" class="status hidden">
             <div class="status-icon">⏳</div>
             <div class="status-text">LINE情報を取得中...</div>
         </div>
@@ -266,8 +329,8 @@
     </script>
 
     <script>
-        const LIFF_ID = '2009077734-ikkJ1w1D';
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzfSgWz8ECzu5LYj6ImAQ9pLPwSTTnkv0Mw3BGdF7PDQuSbiTMcEdAtp2JBrG6Fd7mCiQ/exec';
+        const LIFF_ID = '2009352428';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxbV2AK-9edfJDLYd5roY5Lj3mcWDfLuVXyrLbkbmj-f0ghreoTpBLLHeze72BAMz6h/exec';
 
         let lineProfile = null;
 
@@ -308,6 +371,12 @@
 
                 document.body.appendChild(script);
             });
+        }
+
+        function startLiffInit() {
+            document.getElementById('consent').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            initializeLiff();
         }
 
         async function initializeLiff() {
@@ -460,8 +529,7 @@
             });
         });
 
-        // 初期化
-        initializeLiff();
+        // 初期化は同意画面のボタンから startLiffInit() で実行
     </script>
 </body>
 

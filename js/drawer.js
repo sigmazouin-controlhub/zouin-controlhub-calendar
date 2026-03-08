@@ -430,9 +430,7 @@ async function toggleRecruitment(eventKey, hall, newStatus) {
     }
 
     try {
-        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL ||
-            document.querySelector('[data-gas-url]')?.dataset.gasUrl ||
-            'https://script.google.com/macros/s/AKfycbzfSgWz8ECzu5LYj6ImAQ9pLPwSTTnkv0Mw3BGdF7PDQuSbiTMcEdAtp2JBrG6Fd7mCiQ/exec';
+        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL;
 
         const result = await new Promise((resolve) => {
             const callbackName = 'recruitCallback_' + Date.now();
@@ -481,8 +479,7 @@ async function toggleRecruitment(eventKey, hall, newStatus) {
  */
 async function loadRecruitmentStatuses() {
     try {
-        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL ||
-            'https://script.google.com/macros/s/AKfycbzfSgWz8ECzu5LYj6ImAQ9pLPwSTTnkv0Mw3BGdF7PDQuSbiTMcEdAtp2JBrG6Fd7mCiQ/exec';
+        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL;
 
         const result = await new Promise((resolve) => {
             const callbackName = 'statusCallback_' + Date.now();
@@ -606,7 +603,7 @@ async function handleFormSubmit(e) {
         if (result.success) {
             // LINE公式アカウントにメッセージを送信するURLを生成
             const lineMessage = buildLineMessage(staffHall, staffName, staffSection, dates, hall);
-            const lineUrl = 'https://line.me/R/oaMessage/@320ledlj/?' + encodeURIComponent(lineMessage);
+            const lineUrl = 'https://line.me/R/oaMessage/@825gnfcx/?' + encodeURIComponent(lineMessage);
 
             // 確認ダイアログ表示後にLINEを開く
             showConfirmDialogWithLine(lineUrl);
@@ -625,7 +622,7 @@ async function handleFormSubmit(e) {
 /**
  * 日付を○月○日形式に変換
  */
-function formatDateJP(dateStr) {
+function formatDateShort(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
@@ -637,7 +634,7 @@ function formatDateJP(dateStr) {
  */
 function buildLineMessage(staffHall, staffName, staffSection, dates, eventHall) {
     // 日付を○月○日形式に変換し、複数日は改行で表示
-    const dateList = dates.split(',').map(d => formatDateJP(d.trim()));
+    const dateList = dates.split(',').map(d => formatDateShort(d.trim()));
     const formattedDates = dateList.length > 1
         ? '\n' + dateList.map(d => `　　　　　　　　　${d}`).join('\n')
         : dateList[0];
@@ -689,7 +686,7 @@ function showConfirmDialogWithLine(lineUrl) {
  */
 function submitToGAS(data) {
     return new Promise((resolve) => {
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbzfSgWz8ECzu5LYj6ImAQ9pLPwSTTnkv0Mw3BGdF7PDQuSbiTMcEdAtp2JBrG6Fd7mCiQ/exec';
+        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL;
         const callbackName = 'submitCallback_' + Date.now();
 
         const params = new URLSearchParams(data);
