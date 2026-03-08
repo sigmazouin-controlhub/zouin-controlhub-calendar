@@ -2,6 +2,9 @@
  * 増員 CONTROL HUB 2.0 - ドロワーUI制御
  */
 
+// GAS Web App URL
+const DRAWER_GAS_URL = 'https://script.google.com/macros/s/AKfycbxbV2AK-9edfJDLYd5roY5Lj3mcWDfLuVXyrLbkbmj-f0ghreoTpBLLHeze72BAMz6h/exec';
+
 // DOM要素
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
@@ -430,7 +433,7 @@ async function toggleRecruitment(eventKey, hall, newStatus) {
     }
 
     try {
-        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL;
+        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL || DRAWER_GAS_URL;
 
         const result = await new Promise((resolve) => {
             const callbackName = 'recruitCallback_' + Date.now();
@@ -479,7 +482,7 @@ async function toggleRecruitment(eventKey, hall, newStatus) {
  */
 async function loadRecruitmentStatuses() {
     try {
-        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL;
+        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL || DRAWER_GAS_URL;
 
         const result = await new Promise((resolve) => {
             const callbackName = 'statusCallback_' + Date.now();
@@ -686,7 +689,7 @@ function showConfirmDialogWithLine(lineUrl) {
  */
 function submitToGAS(data) {
     return new Promise((resolve) => {
-        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL;
+        const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL || DRAWER_GAS_URL;
         const callbackName = 'submitCallback_' + Date.now();
 
         const params = new URLSearchParams(data);
