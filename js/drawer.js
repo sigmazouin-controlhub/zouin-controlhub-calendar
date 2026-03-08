@@ -641,18 +641,24 @@ function buildLineMessage(staffHall, staffName, staffSection, dates, eventHall) 
     const datesStr = String(dates || '');
     const dateList = datesStr.split(',').map(d => formatDateShort(d.trim()));
     const formattedDates = dateList.length > 1
-        ? '\n' + dateList.map(d => `　　　　　　　　　${d}`).join('\n')
+        ? '\n' + dateList.map(d => `　・${d}`).join('\n')
         : dateList[0];
 
     return `下記の内容で申し込みます。
 
-■ スタッフ情報
-・［所属ホール］　：${staffHall}
-・［ お名前］　　　：${staffName}
-・［ セクション］　：${staffSection}
-■ 申し込み内容
-・［増員日］　　　：${formattedDates}
-・［希望事業所］　：${eventHall}`;
+■申し込みスタッフ情報■
+【所属ホール】
+${staffHall}
+【お名前】
+${staffName}
+【セクション】
+${staffSection}
+
+■申し込み催事■
+【増員日】
+${formattedDates}
+【募集事業所】
+${eventHall}`;
 }
 
 /**
