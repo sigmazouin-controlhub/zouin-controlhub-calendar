@@ -638,7 +638,8 @@ function formatDateShort(dateStr) {
  */
 function buildLineMessage(staffHall, staffName, staffSection, dates, eventHall) {
     // 日付を○月○日形式に変換し、複数日は改行で表示
-    const dateList = dates.split(',').map(d => formatDateShort(d.trim()));
+    const datesStr = String(dates || '');
+    const dateList = datesStr.split(',').map(d => formatDateShort(d.trim()));
     const formattedDates = dateList.length > 1
         ? '\n' + dateList.map(d => `　　　　　　　　　${d}`).join('\n')
         : dateList[0];
