@@ -584,6 +584,11 @@ async function handleFormSubmit(e) {
         const hall = currentSelectedEvent?.extendedProps?.hall || '';
         const dates = selectedDates.length > 0 ? selectedDates.join(', ') : currentSelectedDate;
 
+        // LINE公式アカウントにメッセージを送信するURLを生成（先に作成）
+        const lineMessage = buildLineMessage(staffHall, staffName, staffSection, dates, hall);
+        const lineUrl = 'https://line.me/R/oaMessage/@825gnfcx/?' + encodeURIComponent(lineMessage);
+
+        // GASにバックグラウンドで送信（失敗してもLINEには進む）
         const data = {
             action: 'submitApplication',
             email: email,
@@ -600,19 +605,15 @@ async function handleFormSubmit(e) {
 
         console.log('応募データ:', data);
 
-        // GASに送信（JSONP方式）
-        const result = await submitToGAS(data);
+        // GAS送信を試みるが、結果に関わらずLINEに遷移
+        submitToGAS(data).then(result => {
+            console.log('GAS送信結果:', result);
+        }).catch(err => {
+            console.warn('GAS送信エラー（LINEには遷移済み）:', err);
+        });
 
-        if (result.success) {
-            // LINE公式アカウントにメッセージを送信するURLを生成
-            const lineMessage = buildLineMessage(staffHall, staffName, staffSection, dates, hall);
-            const lineUrl = 'https://line.me/R/oaMessage/@825gnfcx/?' + encodeURIComponent(lineMessage);
-
-            // 確認ダイアログ表示後にLINEを開く
-            showConfirmDialogWithLine(lineUrl);
-        } else {
-            alert('送信に失敗しました: ' + (result.error || '不明なエラー'));
-        }
+        // 確認ダイアログ表示後にLINEを開く
+        showConfirmDialogWithLine(lineUrl);
     } catch (error) {
         console.error('送信エラー:', error);
         alert('送信に失敗しました。もう一度お試しください。');
