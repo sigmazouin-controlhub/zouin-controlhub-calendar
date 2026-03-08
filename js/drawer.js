@@ -690,6 +690,13 @@ function showConfirmDialogWithLine(lineUrl) {
 function submitToGAS(data) {
     return new Promise((resolve) => {
         const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL || DRAWER_GAS_URL;
+
+        if (!GAS_URL) {
+            console.error('GAS URLが設定されていません');
+            resolve({ success: false, error: 'GAS URLが設定されていません' });
+            return;
+        }
+
         const callbackName = 'submitCallback_' + Date.now();
 
         const params = new URLSearchParams(data);
@@ -697,25 +704,27 @@ function submitToGAS(data) {
 
         window[callbackName] = function (response) {
             delete window[callbackName];
-            document.body.removeChild(script);
+            if (script.parentNode) document.body.removeChild(script);
             resolve(response);
         };
 
         const script = document.createElement('script');
         script.src = `${GAS_URL}?${params.toString()}`;
-        script.onerror = function () {
+        script.onerror = function (e) {
+            console.error('JSONP script error:', e, 'URL:', script.src.substring(0, 100));
             delete window[callbackName];
-            document.body.removeChild(script);
-            resolve({ success: false, error: 'ネットワークエラー' });
+            if (script.parentNode) document.body.removeChild(script);
+            resolve({ success: false, error: 'ネットワークエラー: GASへの接続に失敗しました' });
         };
 
         setTimeout(() => {
             if (window[callbackName]) {
+                console.error('JSONP タイムアウト');
                 delete window[callbackName];
                 if (script.parentNode) document.body.removeChild(script);
-                resolve({ success: false, error: 'タイムアウト' });
+                resolve({ success: false, error: 'タイムアウト（30秒）' });
             }
-        }, 15000);
+        }, 30000);
 
         document.body.appendChild(script);
     });
