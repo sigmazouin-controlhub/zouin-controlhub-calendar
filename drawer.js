@@ -646,19 +646,19 @@ function buildLineMessage(staffHall, staffName, staffSection, dates, eventHall) 
 
     return `下記の内容で申し込みます。
 
-■ 申し込みスタッフ情報
+■申し込みスタッフ情報■
 【所属ホール】
-　・${staffHall}
+${staffHall}
 【お名前】
-　・${staffName}
+${staffName}
 【セクション】
-　・${staffSection}
+${staffSection}
 
-■ 申し込み催事
+■申し込み催事■
 【増員日】
-　・${formattedDates}
+${formattedDates}
 【募集事業所】
-　・${eventHall}`;
+${eventHall}`;
 }
 
 /**
