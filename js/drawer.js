@@ -419,12 +419,58 @@ function updateSelectedDates() {
 }
 
 /**
+ * カスタム確認ダイアログを表示（Promise版）
+ */
+function showCustomConfirm(message) {
+    return new Promise((resolve) => {
+        // 既存ダイアログがあれば削除
+        const existing = document.getElementById('customConfirmOverlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'customConfirmOverlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px;';
+
+        const dialog = document.createElement('div');
+        dialog.style.cssText = 'background:rgba(30,35,55,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:20px;padding:32px 28px 24px;max-width:340px;width:100%;border:1px solid rgba(255,255,255,0.12);box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;';
+
+        dialog.innerHTML = `
+            <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+            <div style="color:#fff;font-size:1.2rem;font-weight:700;line-height:1.6;margin-bottom:28px;">${message}</div>
+            <div style="display:flex;gap:12px;">
+                <button id="customConfirmCancel" style="flex:1;padding:14px;border:1px solid rgba(255,255,255,0.2);border-radius:12px;background:rgba(255,255,255,0.08);color:#fff;font-size:1rem;font-weight:600;cursor:pointer;">キャンセル</button>
+                <button id="customConfirmOk" style="flex:1;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#f87171,#ef4444);color:#fff;font-size:1rem;font-weight:600;cursor:pointer;box-shadow:0 4px 15px rgba(239,68,68,0.3);">OK</button>
+            </div>
+        `;
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        document.getElementById('customConfirmOk').addEventListener('click', () => {
+            overlay.remove();
+            resolve(true);
+        });
+        document.getElementById('customConfirmCancel').addEventListener('click', () => {
+            overlay.remove();
+            resolve(false);
+        });
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                resolve(false);
+            }
+        });
+    });
+}
+
+/**
  * 募集完了ステータスを切り替え（管理者用）
  */
 async function toggleRecruitment(eventKey, hall, newStatus) {
     const email = localStorage.getItem('zouin_staff_name') || '';
     const confirmMsg = newStatus ? 'この募集を完了にしますか？' : 'この募集を再開しますか？';
-    if (!confirm(confirmMsg)) return;
+    const confirmed = await showCustomConfirm(confirmMsg);
+    if (!confirmed) return;
 
     const btn = document.getElementById('adminRecruitBtn');
     if (btn) {
