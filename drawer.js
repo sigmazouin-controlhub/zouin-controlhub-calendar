@@ -93,8 +93,9 @@ function openDrawer(date, events) {
     }
     drawerHallName.textContent = event.hall || '会場未定';
 
-    // 催事名（カレンダー内のタイトル、元はスプシC列のデータ）
-    drawerEventName.textContent = event.title;
+    // 催事名を設定（GAS側で追加した eventName を優先して表示、なければタイトル）
+    let eventNameText = event.extendedProps?.eventName || event.eventName || event.title;
+    drawerEventName.textContent = eventNameText;
 
     // 日付表示（連日対応 + グループイベント対応）
     const startDate = new Date(event.startDate);
