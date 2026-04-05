@@ -93,17 +93,14 @@ function openDrawer(date, events) {
     }
     drawerHallName.textContent = event.hall || '会場未定';
 
-    // 催事名を設定（GAS側で追加した eventName を優先して表示、なければ過去の互換性のためにパース、さらにタイトル）
-    let eventNameText = event.extendedProps?.eventName;
-    
-    if (!eventNameText) {
-        // descriptionから【催事名】を抽出
-        const nameMatch = event.description?.match(/【催事名】\s*([^\n]+)/);
-        if (nameMatch) {
-            eventNameText = nameMatch[1].trim();
-        } else {
-            eventNameText = event.eventName || event.title;
-        }
+    // 催事名（増員内容またはタイトルから抽出）
+    // descriptionから増員内容を抽出
+    let eventNameText = '';
+    const contentMatch = event.description?.match(/【増員内容】\n　(.+)/);
+    if (contentMatch) {
+        eventNameText = contentMatch[1].trim();
+    } else {
+        eventNameText = event.eventName || event.title;
     }
     drawerEventName.textContent = eventNameText;
 
