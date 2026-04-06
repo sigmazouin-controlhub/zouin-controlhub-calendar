@@ -93,12 +93,11 @@ function openDrawer(date, events) {
     }
     drawerHallName.textContent = event.hall || '会場未定';
 
-    // 催事名（増員内容またはタイトルから抽出）
-    // descriptionから増員内容を抽出
+    // 催事名（descriptionの【催事名】から抽出）
     let eventNameText = '';
-    const contentMatch = event.description?.match(/【増員内容】\n　(.+)/);
-    if (contentMatch) {
-        eventNameText = contentMatch[1].trim();
+    const eventNameMatch = event.description?.match(/【催事名】\n　(.+)/);
+    if (eventNameMatch) {
+        eventNameText = eventNameMatch[1].trim();
     } else {
         eventNameText = event.eventName || event.title;
     }
