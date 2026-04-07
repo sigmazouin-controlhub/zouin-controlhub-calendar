@@ -95,7 +95,7 @@ function openDrawer(date, events) {
 
     // 催事名（descriptionの【催事名】から抽出）
     let eventNameText = '';
-    const eventNameMatch = event.description?.match(/【催事名】\n　(.+)/);
+    const eventNameMatch = event.description?.match(/【催事名】\n?　?(.+)/);
     if (eventNameMatch) {
         eventNameText = eventNameMatch[1].trim();
     } else {
@@ -103,41 +103,39 @@ function openDrawer(date, events) {
     }
     drawerEventName.textContent = eventNameText;
 
-    // 日付表示（連日対応 + グループイベント対応）
+    // 区分テキスト
+    const timeSlotText = timeSlots[event.timeSlot] || '全日';
+    drawerTime.textContent = timeSlotText;
+
+    // 日付表示（各日付の横に区分を表示）
     const startDate = new Date(event.startDate);
     const endDate = new Date(event.endDate);
 
     if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
-        // グループイベント（飛び飛び）の場合: 全関連日付を表示
+        // グループイベント（飛び飛び）の場合: 全関連日付を表示 + 区分横並び
         let dateLines = event.relatedDates.map(dateStr => {
             const d = new Date(dateStr);
-            return formatDateJP(d);
+            return formatDateJP(d) + '  ' + timeSlotText;
         });
         dateLines.push(`（${event.relatedDates.length}日間）`);
         drawerDate.innerHTML = dateLines.join('<br>');
     } else if (event.startDate !== event.endDate) {
-        // 複数日の場合: 改行して各日を表示
+        // 複数日の場合: 各日に区分を横並び
         const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-        // 各日の日付を生成
         let dateLines = [];
         for (let i = 0; i < dayDiff; i++) {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
-            dateLines.push(formatDateJP(d));
+            dateLines.push(formatDateJP(d) + '  ' + timeSlotText);
         }
         dateLines.push(`（${dayDiff}日間）`);
 
-        // HTMLで改行表示
         drawerDate.innerHTML = dateLines.join('<br>');
     } else {
         // 単日の場合
-        drawerDate.textContent = formatDateJP(startDate);
+        drawerDate.textContent = formatDateJP(startDate) + '  ' + timeSlotText;
     }
-
-    // 区分表示
-    const timeSlotText = timeSlots[event.timeSlot] || '全日';
-    drawerTime.textContent = timeSlotText;
 
     // 募集人数（セクション別表示）
     if (event.section === 'multiple' && event.parsedSections) {
