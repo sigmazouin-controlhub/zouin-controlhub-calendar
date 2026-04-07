@@ -105,14 +105,17 @@ function openDrawer(date, events) {
     }
     drawerEventName.textContent = eventNameText;
 
-    // 日付表示（連日対応 + グループイベント対応）
+    // 日付と区分の表示（各日付の横に区分を表示）
     const startDate = new Date(event.startDate);
     const endDate = new Date(event.endDate);
 
+    const rawTexts = event.timeSlotRawTexts || [];
+    const getSlot = (index) => rawTexts[index] || rawTexts[rawTexts.length - 1] || timeSlots[event.timeSlot] || '全日';
+
     if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
-        let dateLines = event.relatedDates.map(dateStr => {
+        let dateLines = event.relatedDates.map((dateStr, i) => {
             const d = new Date(dateStr);
-            return formatDateJP(d);
+            return formatDateJP(d) + ': ' + getSlot(i);
         });
         dateLines.push(`（${event.relatedDates.length}日間）`);
         drawerDate.innerHTML = dateLines.join('<br>');
@@ -122,24 +125,12 @@ function openDrawer(date, events) {
         for (let i = 0; i < dayDiff; i++) {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
-            dateLines.push(formatDateJP(d));
+            dateLines.push(formatDateJP(d) + ': ' + getSlot(i));
         }
         dateLines.push(`（${dayDiff}日間）`);
         drawerDate.innerHTML = dateLines.join('<br>');
     } else {
-        drawerDate.textContent = formatDateJP(startDate);
-    }
-
-    // 区分表示
-    if (event.timeSlotRawTexts && event.timeSlotRawTexts.length > 1) {
-        let timeSlotLines = [];
-        event.timeSlotRawTexts.forEach((text, i) => {
-            timeSlotLines.push(`${i + 1}日目: ${text}`);
-        });
-        drawerTime.innerHTML = timeSlotLines.join('<br>');
-    } else {
-        const timeSlotText = timeSlots[event.timeSlot] || '全日';
-        drawerTime.textContent = timeSlotText;
+        drawerDate.textContent = formatDateJP(startDate) + ': ' + getSlot(0);
     }
 
     // 募集人数（セクション別表示）

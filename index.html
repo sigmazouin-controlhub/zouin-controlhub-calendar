@@ -148,19 +148,15 @@
                 <h2 class="drawer-title" id="drawerHallName">大ホール</h2>
             </div>
 
-            <!-- 情報グリッド -->
-            <div class="drawer-info-grid">
+            <div class="drawer-event-title-section" style="margin-bottom: 24px;">
+                <span class="info-label" style="display:block; margin-bottom: 8px;">催事名</span>
+                <h3 id="drawerEventName" style="font-size: 1.5rem; font-weight: bold; color: white; margin: 0; line-height: 1.4;">春のコンサート</h3>
+            </div>
+
+            <div class="drawer-info-grid" style="align-items: start;">
                 <div class="info-item">
-                    <span class="info-label">日付</span>
-                    <span class="info-value" id="drawerDate">2026年1月15日(水)</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">催事名</span>
-                    <span class="info-value" id="drawerEventName">春のコンサート</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">区分</span>
-                    <span class="info-value" id="drawerTime">全日</span>
+                    <span class="info-label">日付: 区分</span>
+                    <span class="info-value" id="drawerDate" style="white-space: pre-line; line-height: 1.5; font-size: 0.95rem;">2026年1月15日(水): 全日</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">募集人数</span>
@@ -234,8 +230,8 @@
 
 
 
-    <script src="js/calendar.js?v=4"></script>
-    <script src="js/drawer.js?v=4"></script>
+    <script src="js/calendar.js?v=5"></script>
+    <script src="js/drawer.js?v=5"></script>
     <script>
         // スタッフ認証処理
         (function () {
