@@ -113,24 +113,27 @@ function openDrawer(date, events) {
     const getSlot = (index) => rawTexts[index] || rawTexts[rawTexts.length - 1] || timeSlots[event.timeSlot] || '全日';
 
     if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
-        let dateLines = event.relatedDates.map((dateStr, i) => {
+        let gridHtml = '<div style="display: grid; grid-template-columns: auto 1fr; row-gap: 4px; column-gap: 6px;">';
+        event.relatedDates.forEach((dateStr, i) => {
             const d = new Date(dateStr);
-            return formatDateJP(d) + ': ' + getSlot(i);
+            gridHtml += `<div style="white-space: nowrap;">${formatDateJP(d)}</div><div style="white-space: nowrap;">: ${getSlot(i)}</div>`;
         });
-        dateLines.push(`（${event.relatedDates.length}日間）`);
-        drawerDate.innerHTML = dateLines.join('<br>');
+        gridHtml += '</div>';
+        gridHtml += `<div style="margin-top:4px; font-size:0.85em; opacity:0.8; padding-left:4px;">（${event.relatedDates.length}日間）</div>`;
+        drawerDate.innerHTML = gridHtml;
     } else if (event.startDate !== event.endDate) {
         const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-        let dateLines = [];
+        let gridHtml = '<div style="display: grid; grid-template-columns: auto 1fr; row-gap: 4px; column-gap: 6px;">';
         for (let i = 0; i < dayDiff; i++) {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
-            dateLines.push(formatDateJP(d) + ': ' + getSlot(i));
+            gridHtml += `<div style="white-space: nowrap;">${formatDateJP(d)}</div><div style="white-space: nowrap;">: ${getSlot(i)}</div>`;
         }
-        dateLines.push(`（${dayDiff}日間）`);
-        drawerDate.innerHTML = dateLines.join('<br>');
+        gridHtml += '</div>';
+        gridHtml += `<div style="margin-top:4px; font-size:0.85em; opacity:0.8; padding-left:4px;">（${dayDiff}日間）</div>`;
+        drawerDate.innerHTML = gridHtml;
     } else {
-        drawerDate.textContent = formatDateJP(startDate) + ': ' + getSlot(0);
+        drawerDate.innerHTML = `<span style="white-space: nowrap;">${formatDateJP(startDate)} : ${getSlot(0)}</span>`;
     }
 
     // 募集人数（セクション別表示）
