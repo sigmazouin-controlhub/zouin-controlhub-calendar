@@ -462,8 +462,14 @@ function transformApiEvents(apiEvents) {
             '午後夜間': 'afternoonEvening'
         };
 
-        const timeSlotMatch = description.match(/【利用区分】\n　(.+)/);
-        const timeSlotText = timeSlotMatch ? timeSlotMatch[1].trim() : '';
+        const timeSlotRegex = /【利用区分】\n[　\s]*(.+)/g;
+        let tsMatch;
+        const timeSlotRawTexts = [];
+        while ((tsMatch = timeSlotRegex.exec(description)) !== null) {
+            timeSlotRawTexts.push(tsMatch[1].trim());
+        }
+        
+        const timeSlotText = timeSlotRawTexts.length > 0 ? timeSlotRawTexts[0] : '';
 
         // グループ情報を追加
         const groupMatch = event.title.match(/(.+?)\s*\((\d+)\/(\d+)\)$/);
@@ -496,6 +502,7 @@ function transformApiEvents(apiEvents) {
             extendedProps: event.extendedProps,
             color: event.color,
             parsedSections: parsedSections,
+            timeSlotRawTexts: timeSlotRawTexts,
             groupId: groupId,              // グループID
             relatedDates: relatedDates     // 関連日付リスト
         };

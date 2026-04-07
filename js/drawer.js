@@ -131,8 +131,16 @@ function openDrawer(date, events) {
     }
 
     // 区分表示
-    const timeSlotText = timeSlots[event.timeSlot] || '全日';
-    drawerTime.textContent = timeSlotText;
+    if (event.timeSlotRawTexts && event.timeSlotRawTexts.length > 1) {
+        let timeSlotLines = [];
+        event.timeSlotRawTexts.forEach((text, i) => {
+            timeSlotLines.push(`${i + 1}日目: ${text}`);
+        });
+        drawerTime.innerHTML = timeSlotLines.join('<br>');
+    } else {
+        const timeSlotText = timeSlots[event.timeSlot] || '全日';
+        drawerTime.textContent = timeSlotText;
+    }
 
     // 募集人数（セクション別表示）
     if (event.section === 'multiple' && event.parsedSections) {
