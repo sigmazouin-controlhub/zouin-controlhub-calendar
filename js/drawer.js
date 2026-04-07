@@ -93,14 +93,15 @@ function openDrawer(date, events) {
     }
     drawerHallName.textContent = event.hall || '会場未定';
 
-    // 催事名（増員内容またはタイトルから抽出）
-    // descriptionから増員内容を抽出
+    // 催事名（descriptionの【催事名】から抽出、またはAPIのeventNameを使用）
     let eventNameText = '';
-    const contentMatch = event.description?.match(/【増員内容】\n　(.+)/);
-    if (contentMatch) {
-        eventNameText = contentMatch[1].trim();
+    const eventNameMatch = event.description?.match(/【催事名】\n?　?(.+)/);
+    if (eventNameMatch) {
+        eventNameText = eventNameMatch[1].trim();
+    } else if (event.eventName) {
+        eventNameText = event.eventName;
     } else {
-        eventNameText = event.eventName || event.title;
+        eventNameText = event.title;
     }
     drawerEventName.textContent = eventNameText;
 
@@ -109,7 +110,6 @@ function openDrawer(date, events) {
     const endDate = new Date(event.endDate);
 
     if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
-        // グループイベント（飛び飛び）の場合: 全関連日付を表示
         let dateLines = event.relatedDates.map(dateStr => {
             const d = new Date(dateStr);
             return formatDateJP(d);
@@ -117,10 +117,7 @@ function openDrawer(date, events) {
         dateLines.push(`（${event.relatedDates.length}日間）`);
         drawerDate.innerHTML = dateLines.join('<br>');
     } else if (event.startDate !== event.endDate) {
-        // 複数日の場合: 改行して各日を表示
         const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-
-        // 各日の日付を生成
         let dateLines = [];
         for (let i = 0; i < dayDiff; i++) {
             const d = new Date(startDate);
@@ -128,11 +125,8 @@ function openDrawer(date, events) {
             dateLines.push(formatDateJP(d));
         }
         dateLines.push(`（${dayDiff}日間）`);
-
-        // HTMLで改行表示
         drawerDate.innerHTML = dateLines.join('<br>');
     } else {
-        // 単日の場合
         drawerDate.textContent = formatDateJP(startDate);
     }
 
@@ -631,7 +625,7 @@ async function handleFormSubmit(e) {
         const dates = selectedDates.length > 0 ? selectedDates.join(', ') : currentSelectedDate;
 
         // LINE公式アカウントにメッセージを送信するURLを生成（先に作成）
-        const lineMessage = buildLineMessage(staffHall, staffName, staffSection, dates, hall);
+        const lineMessage = buildLineMessage(staffHall, staffName, staffSection, dates, hall, eventTitle);
         const lineUrl = 'https://line.me/R/oaMessage/@825gnfcx/?' + encodeURIComponent(lineMessage);
 
         // GASにバックグラウンドで送信（失敗してもLINEには進む）
@@ -682,7 +676,7 @@ function formatDateShort(dateStr) {
 /**
  * LINEプリセットメッセージを生成
  */
-function buildLineMessage(staffHall, staffName, staffSection, dates, eventHall) {
+function buildLineMessage(staffHall, staffName, staffSection, dates, eventHall, eventTitle) {
     // 日付を○月○日形式に変換し、複数日は改行で表示
     const datesStr = String(dates || '');
     const dateList = datesStr.split(',').map(d => formatDateShort(d.trim()));
@@ -701,6 +695,8 @@ ${staffName}
 ${staffSection}
 
 ■申し込み催事■
+【催事名】
+${eventTitle || ''}
 【増員日】
 ${formattedDates}
 【募集事業所】

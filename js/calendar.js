@@ -482,7 +482,7 @@ function transformApiEvents(apiEvents) {
 
         const transformedEvent = {
             id: event.id,
-            eventName: event.extendedProps?.content || '',
+            eventName: event.extendedProps?.eventName || '',
             title: event.title,
             section: section,
             capacity: totalCapacity,
