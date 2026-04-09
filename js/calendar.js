@@ -550,8 +550,16 @@ function parseDescriptionSections(description) {
 // ============================================
 async function initializeApp() {
     const urlParams = new URLSearchParams(window.location.search);
-    const targetDate = urlParams.get('date');
-    const targetHall = urlParams.get('hall');
+    let targetDate = urlParams.get('date');
+    let targetHall = urlParams.get('hall');
+
+    // LIFF環境ではパラメータが liff.state に格納される場合がある
+    const liffState = urlParams.get('liff.state');
+    if (liffState) {
+        const stateParams = new URLSearchParams(liffState.startsWith('?') ? liffState : '?' + liffState);
+        if (!targetDate) targetDate = stateParams.get('date');
+        if (!targetHall) targetHall = stateParams.get('hall');
+    }
 
     if (targetDate) {
         const parsedDate = new Date(targetDate);
