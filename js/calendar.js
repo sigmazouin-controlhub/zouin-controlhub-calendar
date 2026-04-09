@@ -549,8 +549,37 @@ function parseDescriptionSections(description) {
 // 初期化
 // ============================================
 async function initializeApp() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetDate = urlParams.get('date');
+    const targetHall = urlParams.get('hall');
+
+    if (targetDate) {
+        const parsedDate = new Date(targetDate);
+        if (!isNaN(parsedDate.getTime())) {
+            currentDate = parsedDate;
+        }
+    }
+
     await fetchEventsFromAPI();
     renderCalendar();
+
+    if (targetDate && targetHall && eventsData[targetDate]) {
+        const dayEvents = eventsData[targetDate];
+        const targetEvents = dayEvents.filter(e => e.hall === targetHall);
+
+        if (targetEvents.length > 0) {
+            setTimeout(() => {
+                const parts = targetDate.split('-');
+                const exactDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                
+                if (typeof openDrawer === 'function') {
+                    openDrawer(exactDate, [targetEvents[0]]);
+                } else if (typeof window.showEventModal === 'function') {
+                    window.showEventModal(exactDate, targetEvents);
+                }
+            }, 300);
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
