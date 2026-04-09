@@ -622,7 +622,18 @@ async function handleFormSubmit(e) {
         const staffName = localStorage.getItem('zouin_staff_display_name') || document.getElementById('userName').value;
         const staffHall = document.getElementById('staffHall').value;
         const staffSection = document.getElementById('staffSection').value;
-        const eventTitle = currentSelectedEvent?.title || '';
+        // 催事名を取得（descriptionの【催事名】から抽出、またはAPIのeventNameを使用）
+        let eventTitle = '';
+        const evtNameMatch = currentSelectedEvent?.description?.match(/【催事名】\n?　?(.+)/);
+        if (evtNameMatch) {
+            eventTitle = evtNameMatch[1].trim();
+        } else if (currentSelectedEvent?.eventName) {
+            eventTitle = currentSelectedEvent.eventName;
+        } else if (currentSelectedEvent?.extendedProps?.eventName) {
+            eventTitle = currentSelectedEvent.extendedProps.eventName;
+        } else {
+            eventTitle = currentSelectedEvent?.title || '';
+        }
         const hall = currentSelectedEvent?.extendedProps?.hall || '';
         const dates = selectedDates.length > 0 ? selectedDates.join(', ') : currentSelectedDate;
 
