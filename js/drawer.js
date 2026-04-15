@@ -112,31 +112,9 @@ function openDrawer(date, events) {
     const rawTexts = event.timeSlotRawTexts || [];
     const getSlot = (index) => rawTexts[index] || rawTexts[rawTexts.length - 1] || timeSlots[event.timeSlot] || '全日';
 
-    if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
-        let gridHtml = '<div style="display: grid; grid-template-columns: auto 1fr; row-gap: 4px; column-gap: 6px;">';
-        event.relatedDates.forEach((dateStr, i) => {
-            const d = new Date(dateStr);
-            gridHtml += `<div style="white-space: nowrap;">${formatDateJP(d)}</div><div style="white-space: nowrap;">: ${getSlot(i)}</div>`;
-        });
-        gridHtml += '</div>';
-        gridHtml += `<div style="margin-top:4px; font-size:0.85em; opacity:0.8; padding-left:4px;">（${event.relatedDates.length}日間）</div>`;
-        drawerDate.innerHTML = gridHtml;
-    } else if (event.startDate !== event.endDate) {
-        const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-        let gridHtml = '<div style="display: grid; grid-template-columns: auto 1fr; row-gap: 4px; column-gap: 6px;">';
-        for (let i = 0; i < dayDiff; i++) {
-            const d = new Date(startDate);
-            d.setDate(d.getDate() + i);
-            gridHtml += `<div style="white-space: nowrap;">${formatDateJP(d)}</div><div style="white-space: nowrap;">: ${getSlot(i)}</div>`;
-        }
-        gridHtml += '</div>';
-        gridHtml += `<div style="margin-top:4px; font-size:0.85em; opacity:0.8; padding-left:4px;">（${dayDiff}日間）</div>`;
-        drawerDate.innerHTML = gridHtml;
-    } else {
-        drawerDate.innerHTML = `<span style="white-space: nowrap;">${formatDateJP(startDate)} : ${getSlot(0)}</span>`;
-    }
-
-    // 募集人数（セクション別表示）
+    // 日ごとの募集人数を取得
+    const dailyCapacities = extractDailyCapacities(event.description, event.section);
+    let defaultCapacityStr = `${event.capacity}名`;
     if (event.section === 'multiple' && event.parsedSections) {
         const sectionLabels = [];
         const abbrevMap = { stage: '舞', sound: '音', lighting: '照' };
@@ -145,15 +123,50 @@ function openDrawer(date, events) {
                 sectionLabels.push(`${abbrevMap[key] || key}/${count}`);
             }
         }
-        drawerStatus.textContent = sectionLabels.length > 0 ? sectionLabels.join('　') : `${event.capacity}名`;
-    } else {
-        drawerStatus.textContent = `${event.capacity}名`;
+        if (sectionLabels.length > 0) defaultCapacityStr = sectionLabels.join(' ');
     }
+    const getCapacity = (index) => dailyCapacities[index] || defaultCapacityStr;
+
+    let gridHtml = '<div style="display: grid; grid-template-columns: auto auto 1fr; row-gap: 8px; column-gap: 12px; font-size: 1rem; align-items: baseline;">';
+    // テーブルヘッダー
+    gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">日付</div>`;
+    gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">区分</div>`;
+    gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">募集人数</div>`;
+
+    if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
+        event.relatedDates.forEach((dateStr, i) => {
+            const d = new Date(dateStr);
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(d)}</div>`;
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">：${getSlot(i)}</div>`;
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(i)}</div>`;
+        });
+        gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${event.relatedDates.length}日間）</div>`;
+    } else if (event.startDate !== event.endDate) {
+        const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        for (let i = 0; i < dayDiff; i++) {
+            const d = new Date(startDate);
+            d.setDate(d.getDate() + i);
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(d)}</div>`;
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">：${getSlot(i)}</div>`;
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(i)}</div>`;
+        }
+        gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${dayDiff}日間）</div>`;
+    } else {
+        gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(startDate)}</div>`;
+        gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">：${getSlot(0)}</div>`;
+        gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(0)}</div>`;
+    }
+    gridHtml += '</div>';
+    drawerDate.innerHTML = gridHtml;
 
     // 説明文（GASからのdescriptionがある場合はそれを使用）
     if (event.description) {
+        let displayDesc = event.description;
+        // 【催事名】ブロックを削除（最後に空行が必要な場合もケア）
+        displayDesc = displayDesc.replace(/\n?【催事名】\n　[^\n]+(\n|$)/g, '$1');
+        
         // GASからのフォーマット済み説明文を表示（改行を<br>に変換）
-        drawerDescription.innerHTML = event.description.replace(/\n/g, '<br>');
+        drawerDescription.innerHTML = displayDesc.replace(/\n/g, '<br>');
     } else {
         drawerDescription.textContent = `${event.title}のスタッフを募集しています。経験者歓迎。`;
     }
@@ -798,6 +811,47 @@ drawerOverlay.addEventListener('click', closeDrawer);
 drawerClose.addEventListener('click', closeDrawer);
 applyForm.addEventListener('submit', handleFormSubmit);
 confirmClose.addEventListener('click', hideConfirmDialog);
+
+/**
+ * 説明文から日ごとの募集人数を抽出するヘルパー関数
+ */
+function extractDailyCapacities(description, eventSection) {
+    if (!description) return [];
+    
+    // ◆n日目で分割
+    const blocks = description.split(/◆\d+日目/);
+    if (blocks.length <= 1) {
+        // 単日イベントの場合
+        return [extractCapacityFromBlock(description, eventSection)];
+    }
+    
+    // 最初の要素（◆1日目より前のテキスト）を削除
+    blocks.shift();
+    return blocks.map(block => extractCapacityFromBlock(block, eventSection));
+}
+
+function extractCapacityFromBlock(block, eventSection) {
+    let count = 0;
+    let details = [];
+    
+    if (eventSection === 'stage' || eventSection === 'multiple') {
+        const m = block.match(/舞台:\s*(\d+)人/);
+        if (m) { count += parseInt(m[1], 10); details.push(`舞${m[1]}`); }
+    }
+    if (eventSection === 'sound' || eventSection === 'multiple') {
+        const m = block.match(/音響:\s*(\d+)人/);
+        if (m) { count += parseInt(m[1], 10); details.push(`音${m[1]}`); }
+    }
+    if (eventSection === 'lighting' || eventSection === 'multiple') {
+        const m = block.match(/照明:\s*(\d+)人/);
+        if (m) { count += parseInt(m[1], 10); details.push(`照${m[1]}`); }
+    }
+    
+    if (eventSection === 'multiple' && details.length > 0) {
+        return details.join(' ');
+    }
+    return count > 0 ? `${count}名` : '0名';
+}
 
 // ドラッグでドロワーを閉じる
 let isDragging = false;
