@@ -133,7 +133,14 @@ function openDrawer(date, events) {
     gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">区分</div>`;
     gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">募集人数</div>`;
 
-    const pref = event.consecutivePreference || event.extendedProps?.consecutivePreference || '';
+    let parsedPref = '';
+    if (event.description) {
+        const prefMatch = event.description.match(/💡連日通し希望💡\n　([^\n]+)/);
+        if (prefMatch) {
+            parsedPref = prefMatch[1].trim();
+        }
+    }
+    const pref = event.consecutivePreference || event.extendedProps?.consecutivePreference || parsedPref || '';
     const prefHtml = pref ? `&nbsp;&nbsp;💡連日通し希望💡 ${pref}` : '';
 
     if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
