@@ -133,28 +133,34 @@ function openDrawer(date, events) {
     gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">区分</div>`;
     gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">募集人数</div>`;
 
+    const pref = event.consecutivePreference || event.extendedProps?.consecutivePreference || '';
+    const prefHtml = pref ? `&nbsp;&nbsp;💡連日通し希望💡 ${pref}` : '';
+
     if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
         event.relatedDates.forEach((dateStr, i) => {
             const d = new Date(dateStr);
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(d)}</div>`;
-            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">：${getSlot(i)}</div>`;
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(i)}</div>`;
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(i)}</div>`;
         });
-        gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${event.relatedDates.length}日間）</div>`;
+        gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${event.relatedDates.length}日間）${prefHtml}</div>`;
     } else if (event.startDate !== event.endDate) {
         const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         for (let i = 0; i < dayDiff; i++) {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(d)}</div>`;
-            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">：${getSlot(i)}</div>`;
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(i)}</div>`;
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(i)}</div>`;
         }
-        gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${dayDiff}日間）</div>`;
+        gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${dayDiff}日間）${prefHtml}</div>`;
     } else {
         gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(startDate)}</div>`;
-        gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">：${getSlot(0)}</div>`;
+        gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(0)}</div>`;
         gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(0)}</div>`;
+        if (pref) {
+            gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">${prefHtml}</div>`;
+        }
     }
     gridHtml += '</div>';
     drawerDate.innerHTML = gridHtml;
@@ -164,6 +170,8 @@ function openDrawer(date, events) {
         let displayDesc = event.description;
         // 【催事名】ブロックを削除（最後に空行が必要な場合もケア）
         displayDesc = displayDesc.replace(/\n?【催事名】\n　[^\n]+(\n|$)/g, '$1');
+        // 💡連日通し希望💡ブロックを削除
+        displayDesc = displayDesc.replace(/\n?💡連日通し希望💡\n　[^\n]+(\n|$)/g, '$1');
         
         // GASからのフォーマット済み説明文を表示（改行を<br>に変換）
         drawerDescription.innerHTML = displayDesc.replace(/\n/g, '<br>');
