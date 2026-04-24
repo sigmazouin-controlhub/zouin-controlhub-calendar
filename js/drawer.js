@@ -681,29 +681,7 @@ async function handleFormSubmit(e) {
         const lineMessage = buildLineMessage(staffHall, staffName, staffSection, dates, hall, eventTitle);
         const lineUrl = 'https://line.me/R/oaMessage/@825gnfcx/?' + encodeURIComponent(lineMessage);
 
-        // GASにバックグラウンドで送信（失敗してもLINEには進む）
-        const data = {
-            action: 'submitApplication',
-            email: email,
-            staffName: staffName,
-            staffHall: staffHall,
-            staffSection: staffSection,
-            eventTitle: eventTitle,
-            hall: hall,
-            section: staffSection,
-            date: currentSelectedDate,
-            selectedDates: selectedDates.length > 0 ? selectedDates.join(',') : currentSelectedDate,
-            sendLineNotification: true
-        };
-
-        console.log('応募データ:', data);
-
-        // GAS送信を試みるが、結果に関わらずLINEに遷移
-        submitToGAS(data).then(result => {
-            console.log('GAS送信結果:', result);
-        }).catch(err => {
-            console.warn('GAS送信エラー（LINEには遷移済み）:', err);
-        });
+        // ※Webからの「確認中」ステータス送信を完全に廃止し、直接LINEへ誘導するのみに変更
 
         // 確認ダイアログ表示後にLINEを開く
         showConfirmDialogWithLine(lineUrl);
@@ -717,13 +695,13 @@ async function handleFormSubmit(e) {
 }
 
 /**
- * 日付を○月○日形式に変換
+ * 日付を YYYY-MM-DD 形式に変換（カウント処理で正確にパースできるようにするため）
  */
 function formatDateShort(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    return `${d.getMonth() + 1}月${d.getDate()}日`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /**
