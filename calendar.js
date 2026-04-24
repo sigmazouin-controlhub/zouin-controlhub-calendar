@@ -504,7 +504,8 @@ function transformApiEvents(apiEvents) {
             parsedSections: parsedSections,
             timeSlotRawTexts: timeSlotRawTexts,
             groupId: groupId,              // グループID
-            relatedDates: relatedDates     // 関連日付リスト
+            relatedDates: relatedDates,    // 関連日付リスト
+            applicantCounts: event.extendedProps?.applicantCounts || { stage: 0, sound: 0, lighting: 0 }
         };
 
         // 開始日から終了日まで各日に追加

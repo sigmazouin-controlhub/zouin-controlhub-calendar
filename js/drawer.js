@@ -19,7 +19,8 @@ const drawerStatus = document.getElementById('drawerStatus');
 const drawerDescription = document.getElementById('drawerDescription');
 const drawerNotice = document.getElementById('drawerNotice');
 const noticeTitle = document.getElementById('noticeTitle');
-const noticeMessage = document.getElementById('noticeMessage');
+const noticeApplicantList = document.getElementById('noticeApplicantList');
+const noticeFooter = document.getElementById('noticeFooter');
 const applyForm = document.getElementById('applyForm');
 const confirmDialog = document.getElementById('confirmDialog');
 const confirmClose = document.getElementById('confirmClose');
@@ -186,16 +187,31 @@ function openDrawer(date, events) {
         drawerDescription.textContent = `${event.title}のスタッフを募集しています。経験者歓迎。`;
     }
 
-    // 定員状況メッセージを設定
-    const isFull = event.applied >= event.capacity;
-    if (isFull) {
-        noticeTitle.textContent = '定員に達しています';
-        noticeMessage.textContent = '応募すると【キャンセル待ち / 選考対象】として登録されます。';
-    } else {
-        const remaining = event.capacity - event.applied;
-        noticeTitle.textContent = '募集中です';
-        noticeMessage.textContent = `残り${remaining}名の枠があります。ぜひご応募ください！`;
+    // セクション別申込者カウントを表示
+    const applicantCounts = event.extendedProps?.applicantCounts || event.applicantCounts || { stage: 0, sound: 0, lighting: 0 };
+    const parsedSections = event.parsedSections || event.extendedProps?.sections || { stage: 0, sound: 0, lighting: 0 };
+    
+    // 募集セクションに対してカウントをリスト表示
+    let listHtml = '';
+    const sectionNameMap = { stage: '舞台', sound: '音響', lighting: '照明' };
+    let hasAnySections = false;
+    
+    for (const [key, recruitCount] of Object.entries(parsedSections)) {
+        if (recruitCount > 0) {
+            hasAnySections = true;
+            const count = applicantCounts[key] || 0;
+            listHtml += `<div style="padding: 2px 0;">・${sectionNameMap[key] || key}：${count}名申し込み中</div>`;
+        }
     }
+    
+    if (!hasAnySections) {
+        listHtml = '<div style="padding: 2px 0; opacity: 0.7;">セクション情報なし</div>';
+    }
+    
+    noticeTitle.textContent = '現在の申し込み状況';
+    noticeApplicantList.innerHTML = listHtml;
+    noticeFooter.textContent = '※LINEでの確定後に反映されます。';
+    noticeFooter.style.display = '';
 
     // 日付選択の表示/非表示を設定
     setupDateSelection(event);
@@ -216,24 +232,20 @@ function openDrawer(date, events) {
     if (existingOverlay) existingOverlay.remove();
 
     if (isClosed) {
-        // 募集完了: フォームを非表示、オーバーレイ表示
+        // 募集完了（B案）: フォームを非表示、インフォエリアに終了メッセージを表示
         if (formSection) formSection.style.display = 'none';
-        if (noticeEl) noticeEl.style.display = 'none';
-
-        const overlay = document.createElement('div');
-        overlay.id = 'closedOverlay';
-        overlay.style.cssText = 'text-align:center;padding:32px 16px;margin:16px 0;background:rgba(255,59,48,0.08);border-radius:12px;border:1px solid rgba(255,59,48,0.2);';
-        overlay.innerHTML = `
-            <div style="font-size:40px;margin-bottom:8px;">⛔</div>
-            <div style="font-size:16px;font-weight:700;color:#ff3b30;margin-bottom:4px;">募集は終了しました</div>
-            <div style="font-size:13px;color:#888;">このイベントの募集は終了しています。</div>
-        `;
-        const drawerBody = document.querySelector('.drawer-inner');
-        drawerBody.appendChild(overlay);
+        if (noticeEl) noticeEl.style.display = '';
+        
+        // インフォエリアを「募集終了」テキストに上書き
+        noticeTitle.textContent = '本案件の募集は終了しました';
+        noticeApplicantList.innerHTML = '';
+        noticeFooter.style.display = 'none';
+        document.querySelector('#drawerNotice .notice-icon').textContent = '⛔';
     } else {
         // 募集中: フォームを表示
         if (formSection) formSection.style.display = '';
         if (noticeEl) noticeEl.style.display = '';
+        document.querySelector('#drawerNotice .notice-icon').textContent = 'ℹ️';
     }
 
     // 管理者ボタン表示（自分のホールのみ）
