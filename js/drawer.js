@@ -210,8 +210,8 @@ function openDrawer(date, events) {
     
     noticeTitle.textContent = '現在の申し込み状況';
     noticeApplicantList.innerHTML = listHtml;
-    noticeFooter.textContent = '※LINEでの確定後に反映されます。';
-    noticeFooter.style.display = '';
+    noticeFooter.textContent = '';
+    noticeFooter.style.display = 'none';
 
     // 日付選択の表示/非表示を設定
     setupDateSelection(event);
