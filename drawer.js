@@ -249,7 +249,6 @@ function openDrawer(date, events) {
     
     // 募集セクションに対してカウントをリスト表示
     let listHtml = '';
-    const sectionNameMap = { stage: '舞台', sound: '音響', lighting: '照明' };
     let hasAnySections = false;
     
     for (const [key, recruitCount] of Object.entries(parsedSections)) {
