@@ -220,53 +220,55 @@ function openDrawer(date, events) {
     const eventKey = `${event.title}_${event.startDate}`;
     currentSelectedEvent.eventKey = eventKey;
 
-    // 募集完了状態の確認
+    // 募集完了状態の確認（全体）
     const isClosed = recruitmentStatuses[eventKey] === true;
     const formSection = document.querySelector('.drawer-form-section');
     const noticeEl = document.getElementById('drawerNotice');
 
-    // 既存の管理者ボタンとオーバーレイをクリア
+    // 既存の管理者パネルをクリア
+    const existingPanel = document.getElementById('adminPanel');
+    if (existingPanel) existingPanel.remove();
     const existingAdminBtn = document.getElementById('adminRecruitBtn');
     if (existingAdminBtn) existingAdminBtn.remove();
     const existingOverlay = document.getElementById('closedOverlay');
     if (existingOverlay) existingOverlay.remove();
 
+    // 部分終了の情報を収集
+    const closedDays = getClosedDays(eventKey);
+    const closedSections = getClosedSections(eventKey);
+    const hasPartialClose = closedDays.length > 0 || closedSections.length > 0;
+
     if (isClosed) {
-        // 募集完了（B案）: フォームを非表示、インフォエリアに終了メッセージを表示
         if (formSection) formSection.style.display = 'none';
         if (noticeEl) noticeEl.style.display = '';
-        
-        // インフォエリアを「募集終了」テキストに上書き
         noticeTitle.textContent = '本案件の募集は終了しました';
         noticeApplicantList.innerHTML = '';
         noticeFooter.style.display = 'none';
         document.querySelector('#drawerNotice .notice-icon').textContent = '⛔';
     } else {
-        // 募集中: フォームを表示
         if (formSection) formSection.style.display = '';
         if (noticeEl) noticeEl.style.display = '';
         document.querySelector('#drawerNotice .notice-icon').textContent = 'ℹ️';
+        // 部分終了の注記を追加
+        if (hasPartialClose) {
+            let partialNotes = [];
+            if (closedDays.length > 0) partialNotes.push(closedDays.join(', ') + ' は募集終了');
+            const secMap = { stage: '舞台', sound: '音響', lighting: '照明' };
+            if (closedSections.length > 0) partialNotes.push(closedSections.map(s => secMap[s] || s).join('・') + ' は募集終了');
+            noticeFooter.textContent = '⚠️ ' + partialNotes.join(' / ');
+            noticeFooter.style.display = '';
+        }
     }
 
-    // 管理者ボタン表示（自分のホールのみ）
+    // 管理者パネル表示（自分のホールのみ）
     const isAdmin = window.isAdmin || localStorage.getItem('zouin_is_admin') === 'true';
     const staffHall = localStorage.getItem('zouin_staff_hall');
     const eventHall = event.hall || '';
 
-    console.log('管理者チェック:', { isAdmin, staffHall, eventHall, isClosed, match: eventHall === staffHall, eventKey });
-
     if (isAdmin && staffHall && eventHall === staffHall) {
-        const adminBtn = document.createElement('button');
-        adminBtn.id = 'adminRecruitBtn';
-        adminBtn.type = 'button';
-        const btnColor = isClosed ? '#34c759' : '#ff3b30';
-        const btnText = isClosed ? '▶ 募集を再開する' : '◼ 募集を終了する';
-        adminBtn.style.cssText = `display:block;width:100%;padding:14px;margin:12px 0 0;border:none;background:${btnColor};color:#fff;font-weight:700;font-size:15px;border-radius:12px;cursor:pointer;letter-spacing:0.5px;box-shadow:0 2px 8px ${btnColor}40;`;
-        adminBtn.textContent = btnText;
-        adminBtn.onclick = () => toggleRecruitment(eventKey, eventHall, !isClosed);
-
+        const panel = buildAdminPanel(event, eventKey, eventHall, isClosed);
         const drawerBody = document.querySelector('.drawer-inner');
-        drawerBody.appendChild(adminBtn);
+        drawerBody.appendChild(panel);
     }
 
     // オーバーレイを表示
@@ -501,18 +503,25 @@ function showCustomConfirm(message) {
 
 /**
  * 募集完了ステータスを切り替え（管理者用）
+ * @param {string} eventKey - ベースイベントキー
+ * @param {string} hall - ホール名
+ * @param {boolean} newStatus - 新しい完了状態
+ * @param {string} [targetDay] - 日別終了の場合の対象日 (YYYY-MM-DD)
+ * @param {string} [targetSection] - セクション別終了の場合 (stage/sound/lighting)
  */
-async function toggleRecruitment(eventKey, hall, newStatus) {
+async function toggleRecruitment(eventKey, hall, newStatus, targetDay, targetSection) {
     const email = localStorage.getItem('zouin_staff_name') || '';
-    const confirmMsg = newStatus ? 'この募集を完了にしますか？' : 'この募集を再開しますか？';
+    let confirmMsg = '';
+    const secMap = { stage: '舞台', sound: '音響', lighting: '照明' };
+    if (targetDay) {
+        confirmMsg = newStatus ? `${targetDay} の募集を終了しますか？` : `${targetDay} の募集を再開しますか？`;
+    } else if (targetSection) {
+        confirmMsg = newStatus ? `${secMap[targetSection] || targetSection}の募集を終了しますか？` : `${secMap[targetSection] || targetSection}の募集を再開しますか？`;
+    } else {
+        confirmMsg = newStatus ? '全日程・全セクションの募集を終了しますか？' : '全日程・全セクションの募集を再開しますか？';
+    }
     const confirmed = await showCustomConfirm(confirmMsg);
     if (!confirmed) return;
-
-    const btn = document.getElementById('adminRecruitBtn');
-    if (btn) {
-        btn.textContent = '処理中...';
-        btn.disabled = true;
-    }
 
     try {
         const GAS_URL = window.calendarApp?.API_CONFIG?.GAS_URL || DRAWER_GAS_URL;
@@ -523,14 +532,17 @@ async function toggleRecruitment(eventKey, hall, newStatus) {
                 delete window[callbackName];
                 resolve(data);
             };
-            const params = new URLSearchParams({
+            const reqParams = {
                 action: 'toggleRecruitment',
                 eventKey: eventKey,
                 hall: hall,
                 status: newStatus.toString(),
                 email: email,
                 callback: callbackName
-            });
+            };
+            if (targetDay) reqParams.targetDay = targetDay;
+            if (targetSection) reqParams.targetSection = targetSection;
+            const params = new URLSearchParams(reqParams);
             const script = document.createElement('script');
             script.src = GAS_URL + '?' + params.toString();
             script.onerror = () => resolve({ success: false, error: '通信エラー' });
@@ -538,7 +550,9 @@ async function toggleRecruitment(eventKey, hall, newStatus) {
         });
 
         if (result.success) {
-            recruitmentStatuses[eventKey] = result.closed;
+            // 返却されたactualKeyでステータスを更新
+            recruitmentStatuses[result.eventKey] = result.closed;
+            if (!result.closed) delete recruitmentStatuses[result.eventKey];
             // ドロワーを再描画
             if (currentSelectedEvent) {
                 closeDrawer();
@@ -546,7 +560,6 @@ async function toggleRecruitment(eventKey, hall, newStatus) {
                     openDrawer(currentSelectedDate, [currentSelectedEvent]);
                 }, 100);
             }
-            // カレンダーも更新
             if (window.calendarApp?.refreshCalendar) {
                 window.calendarApp.refreshCalendar();
             }
@@ -596,6 +609,225 @@ document.addEventListener('DOMContentLoaded', () => {
     loadRecruitmentStatuses();
 });
 
+/**
+ * 終了済みの日付一覧を取得
+ */
+function getClosedDays(baseEventKey) {
+    const closed = [];
+    for (const key in recruitmentStatuses) {
+        if (key.startsWith(baseEventKey + '__day:') && recruitmentStatuses[key]) {
+            const dayMatch = key.match(/__day:(\d{4}-\d{2}-\d{2})/);
+            if (dayMatch) closed.push(dayMatch[1]);
+        }
+    }
+    return closed;
+}
+
+/**
+ * 終了済みのセクション一覧を取得
+ */
+function getClosedSections(baseEventKey) {
+    const closed = [];
+    for (const key in recruitmentStatuses) {
+        if (key.startsWith(baseEventKey + '__sec:') && !key.includes('__day:') && recruitmentStatuses[key]) {
+            const secMatch = key.match(/__sec:(\w+)/);
+            if (secMatch) closed.push(secMatch[1]);
+        }
+    }
+    return closed;
+}
+
+/**
+ * イベントの日付リストを取得
+ */
+function getEventDates(event) {
+    const dates = [];
+    const relDates = event.relatedDates || event.extendedProps?.relatedDates || [];
+    if (Array.isArray(relDates) && relDates.length > 0) {
+        relDates.forEach(d => {
+            const p = new Date(d);
+            if (!isNaN(p.getTime())) dates.push(p);
+        });
+    } else {
+        const s = new Date(event.startDate || event.start);
+        const e = new Date(event.endDate || event.end || event.startDate);
+        if (!isNaN(s.getTime())) {
+            let cur = new Date(s);
+            let count = 0;
+            while (cur <= e && count < 10) {
+                dates.push(new Date(cur));
+                cur.setDate(cur.getDate() + 1);
+                count++;
+            }
+        }
+    }
+    return dates;
+}
+
+/**
+ * イベントの募集セクションリストを取得
+ */
+function getEventSections(event) {
+    const sections = [];
+    const ps = event.parsedSections || event.extendedProps?.sections || {};
+    if (ps.stage > 0) sections.push({ key: 'stage', name: '舞台', count: ps.stage });
+    if (ps.sound > 0) sections.push({ key: 'sound', name: '音響', count: ps.sound });
+    if (ps.lighting > 0) sections.push({ key: 'lighting', name: '照明', count: ps.lighting });
+    return sections;
+}
+
+/**
+ * 日付をフォーマット (M/D(曜))
+ */
+function formatDateShortJP(date) {
+    const wd = ['日','月','火','水','木','金','土'];
+    return `${date.getMonth()+1}/${date.getDate()}(${wd[date.getDay()]})`;
+}
+
+/**
+ * 管理者パネルを構築
+ */
+function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
+    const panel = document.createElement('div');
+    panel.id = 'adminPanel';
+    panel.style.cssText = 'margin:16px 0;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:16px;overflow:hidden;';
+
+    // ヘッダー
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:8px;padding:14px 16px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.08);';
+    const badgeText = isBulkClosed ? '⛔ 全体終了中' : '管理者';
+    const badgeBg = isBulkClosed ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.2)';
+    header.innerHTML = `<span style="font-size:1.1rem;">🔧</span><span style="font-size:0.9rem;font-weight:600;flex:1;">管理者メニュー</span><span style="font-size:0.65rem;background:${badgeBg};color:#f87171;padding:2px 8px;border-radius:10px;font-weight:600;">${badgeText}</span>`;
+    panel.appendChild(header);
+
+    // === 一括操作 ===
+    const bulkSection = createAdminSection('⚡', '一括操作');
+    const bulkBtn = document.createElement('button');
+    bulkBtn.type = 'button';
+    if (isBulkClosed) {
+        bulkBtn.style.cssText = 'width:100%;padding:12px;border:none;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 4px 15px rgba(22,163,74,0.3);';
+        bulkBtn.textContent = '▶ 全日程・全セクション 募集再開';
+    } else {
+        bulkBtn.style.cssText = 'width:100%;padding:12px;border:none;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;box-shadow:0 4px 15px rgba(220,38,38,0.3);';
+        bulkBtn.textContent = '◼ 全日程・全セクション 募集終了';
+    }
+    bulkBtn.onclick = () => toggleRecruitment(eventKey, hall, !isBulkClosed);
+    bulkSection.appendChild(bulkBtn);
+    panel.appendChild(bulkSection);
+
+    // === 日別終了 ===
+    const dates = getEventDates(event);
+    if (dates.length > 1) {
+        const daySection = createAdminSection('📅', '日別終了');
+        if (isBulkClosed) {
+            daySection.style.opacity = '0.35';
+            daySection.style.pointerEvents = 'none';
+            daySection.querySelector('.admin-section-title-text').textContent += '（一括終了中のため無効）';
+        }
+        const closedDays = getClosedDays(eventKey);
+        dates.forEach((d, i) => {
+            const dateStr = d.toISOString().split('T')[0];
+            const isDayClosed = isBulkClosed || closedDays.includes(dateStr);
+            const row = createToggleRow(
+                formatDateShortJP(d),
+                `${i+1}日目`,
+                isDayClosed,
+                isBulkClosed,
+                () => toggleRecruitment(eventKey, hall, !isDayClosed, dateStr, null)
+            );
+            daySection.appendChild(row);
+        });
+        panel.appendChild(daySection);
+    }
+
+    // === セクション別終了 ===
+    const sections = getEventSections(event);
+    if (sections.length > 1) {
+        const secSection = createAdminSection('🎭', 'セクション別終了');
+        if (isBulkClosed) {
+            secSection.style.opacity = '0.35';
+            secSection.style.pointerEvents = 'none';
+            secSection.querySelector('.admin-section-title-text').textContent += '（一括終了中のため無効）';
+        }
+        const closedSecs = getClosedSections(eventKey);
+        sections.forEach(sec => {
+            const isSecClosed = isBulkClosed || closedSecs.includes(sec.key);
+            const row = createToggleRow(
+                sec.name,
+                `${sec.count}名募集`,
+                isSecClosed,
+                isBulkClosed,
+                () => toggleRecruitment(eventKey, hall, !isSecClosed, null, sec.key)
+            );
+            secSection.appendChild(row);
+        });
+        panel.appendChild(secSection);
+    }
+
+    // 注意書き
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:0.65rem;color:rgba(255,255,255,0.3);padding:8px 16px 12px;line-height:1.5;';
+    note.textContent = '※ 一括終了すると日別・セクション別の設定は無効になります';
+    panel.appendChild(note);
+
+    return panel;
+}
+
+/**
+ * 管理者パネルのセクション要素を作成
+ */
+function createAdminSection(emoji, title) {
+    const section = document.createElement('div');
+    section.style.cssText = 'padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);';
+    const titleEl = document.createElement('div');
+    titleEl.style.cssText = 'font-size:0.7rem;color:rgba(255,255,255,0.4);font-weight:600;letter-spacing:0.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;';
+    titleEl.innerHTML = `<span style="font-size:0.85rem;">${emoji}</span><span class="admin-section-title-text">${title}</span>`;
+    section.appendChild(titleEl);
+    return section;
+}
+
+/**
+ * トグル行を作成
+ */
+function createToggleRow(label, sub, isClosed, isBulkDisabled, onClick) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;padding:8px 0;gap:10px;border-top:1px solid rgba(255,255,255,0.04);';
+
+    // ステータスドット
+    const dot = document.createElement('div');
+    const dotColor = isClosed ? '#f87171' : '#4ade80';
+    const dotShadow = isClosed ? 'rgba(248,113,113,0.4)' : 'rgba(74,222,128,0.4)';
+    dot.style.cssText = `width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${dotColor};box-shadow:0 0 8px ${dotShadow};`;
+
+    // ラベル
+    const labelEl = document.createElement('div');
+    labelEl.style.cssText = `flex:1;font-size:0.85rem;font-weight:500;${isClosed && !isBulkDisabled ? 'text-decoration:line-through;opacity:0.6;' : ''}`;
+    let labelHtml = label;
+    if (sub) labelHtml += `<span style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-left:6px;">${sub}</span>`;
+    if (isClosed && !isBulkDisabled) labelHtml += `<span style="font-size:0.65rem;background:rgba(239,68,68,0.15);color:#f87171;padding:2px 6px;border-radius:6px;margin-left:4px;">終了済</span>`;
+    labelEl.innerHTML = labelHtml;
+
+    // ボタン
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    if (isBulkDisabled) {
+        btn.style.cssText = 'padding:6px 14px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:0.72rem;font-weight:600;cursor:not-allowed;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.25);white-space:nowrap;';
+        btn.textContent = 'ー';
+    } else if (isClosed) {
+        btn.style.cssText = 'padding:6px 14px;border:1px solid rgba(74,222,128,0.3);border-radius:8px;font-size:0.72rem;font-weight:600;cursor:pointer;background:rgba(74,222,128,0.15);color:#4ade80;white-space:nowrap;';
+        btn.textContent = '再開する';
+        btn.onclick = onClick;
+    } else {
+        btn.style.cssText = 'padding:6px 14px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;font-size:0.72rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,0.15);color:#f87171;white-space:nowrap;';
+        btn.textContent = '終了にする';
+        btn.onclick = onClick;
+    }
+
+    row.appendChild(dot);
+    row.appendChild(labelEl);
+    row.appendChild(btn);
+    return row;
+}
 
 /**
  * ドロワーを閉じる
