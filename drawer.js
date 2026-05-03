@@ -130,11 +130,34 @@ function openDrawer(date, events) {
 
     // 募集終了ステータスバッジを判定
     const eventKey = `${event.title}_${event.startDate}`;
-    const isBulkClosed = recruitmentStatuses[eventKey] === true;
+    let isBulkClosed = recruitmentStatuses[eventKey] === true;
     const closedDaysList = getClosedDays(eventKey);
     const closedSecsList = getClosedSections(eventKey);
     const closedDaySecs = getClosedDaySections(eventKey);
-    const hasAnyPartialClose = closedDaysList.length > 0 || closedSecsList.length > 0 || closedDaySecs.length > 0;
+    let hasAnyPartialClose = closedDaysList.length > 0 || closedSecsList.length > 0 || closedDaySecs.length > 0;
+
+    // 全セクション・全日程が個別に終了されているか判定し、一括終了扱いにする
+    if (!isBulkClosed && hasAnyPartialClose) {
+        const allDates = getEventDates(event);
+        const allSections = getEventSections(event);
+        if (allDates.length > 0 && allSections.length > 0) {
+            let allClosed = true;
+            for (const d of allDates) {
+                const dateStr = getLocalDateString(d);
+                for (const sec of allSections) {
+                    if (!isDaySecClosed(eventKey, dateStr, sec.key, isBulkClosed, closedDaysList, closedSecsList, closedDaySecs)) {
+                        allClosed = false;
+                        break;
+                    }
+                }
+                if (!allClosed) break;
+            }
+            if (allClosed) {
+                isBulkClosed = true;
+                hasAnyPartialClose = false;
+            }
+        }
+    }
 
     let statusBadgeHtml = '';
     if (isBulkClosed) {
@@ -822,13 +845,17 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
         const closedSecs = getClosedSections(eventKey);
         const closedDaySecs = getClosedDaySections(eventKey);
 
+        // マトリックステーブルを囲むスクロールコンテナ
+        const tableContainer = document.createElement('div');
+        tableContainer.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;';
+
         // マトリックステーブル
         const table = document.createElement('table');
-        table.style.cssText = 'width:100%;border-collapse:collapse;font-size:0.78rem;';
+        table.style.cssText = 'width:max-content;min-width:100%;border-collapse:collapse;font-size:0.78rem;';
 
         // ヘッダー行
         const thead = document.createElement('thead');
-        let thRow = '<tr><th style="text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-weight:600;font-size:0.7rem;border-bottom:1px solid rgba(255,255,255,0.1);"></th>';
+        let thRow = '<tr><th style="text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-weight:600;font-size:0.7rem;border-bottom:1px solid rgba(255,255,255,0.1);position:sticky;left:0;background:rgba(30,41,59,0.9);z-index:1;"></th>';
         sections.forEach(sec => {
             thRow += `<th style="text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-weight:600;font-size:0.7rem;border-bottom:1px solid rgba(255,255,255,0.1);">${sec.name}</th>`;
         });
@@ -842,9 +869,9 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
             const dateStr = getLocalDateString(d);
             const tr = document.createElement('tr');
 
-            // 日付セル
+            // 日付セル（固定列）
             const tdDay = document.createElement('td');
-            tdDay.style.cssText = 'padding:6px 8px;font-weight:600;white-space:nowrap;vertical-align:middle;border-bottom:1px solid rgba(255,255,255,0.04);';
+            tdDay.style.cssText = 'padding:6px 8px;font-weight:600;white-space:nowrap;vertical-align:middle;border-bottom:1px solid rgba(255,255,255,0.04);position:sticky;left:0;background:rgba(30,41,59,0.9);z-index:1;box-shadow:1px 0 3px rgba(0,0,0,0.1);';
             tdDay.innerHTML = `${formatDateShortJP(d)}<br><span style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${i+1}日目</span>`;
             tr.appendChild(tdDay);
 
@@ -894,7 +921,8 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
             tbody.appendChild(tr);
         });
         table.appendChild(tbody);
-        matrixSection.appendChild(table);
+        tableContainer.appendChild(table);
+        matrixSection.appendChild(tableContainer);
         panel.appendChild(matrixSection);
     }
 
