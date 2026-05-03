@@ -128,7 +128,27 @@ function openDrawer(date, events) {
     }
     const getCapacity = (index) => dailyCapacities[index] || defaultCapacityStr;
 
-    let gridHtml = '<div style="display: grid; grid-template-columns: auto auto 1fr; row-gap: 8px; column-gap: 12px; font-size: 1rem; align-items: baseline;">';
+    // 募集終了ステータスバッジを判定
+    const eventKey = `${event.title}_${event.startDate}`;
+    const isBulkClosed = recruitmentStatuses[eventKey] === true;
+    const closedDaysList = getClosedDays(eventKey);
+    const closedSecsList = getClosedSections(eventKey);
+    const closedDaySecs = getClosedDaySections(eventKey);
+    const hasAnyPartialClose = closedDaysList.length > 0 || closedSecsList.length > 0 || closedDaySecs.length > 0;
+
+    let statusBadgeHtml = '';
+    if (isBulkClosed) {
+        statusBadgeHtml = '<span style="font-size:0.7rem;background:rgba(239,68,68,0.25);color:#f87171;padding:2px 8px;border-radius:6px;font-weight:600;">募集完了</span>';
+    } else if (hasAnyPartialClose) {
+        statusBadgeHtml = '<span style="font-size:0.7rem;background:rgba(251,191,36,0.2);color:#fbbf24;padding:2px 8px;border-radius:6px;font-weight:600;">一部終了</span>';
+    }
+
+    let gridHtml = '';
+    // テーブルタイトル行（ステータスバッジ付き）
+    if (statusBadgeHtml) {
+        gridHtml += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="color:rgba(255,255,255,0.7);font-size:0.8rem;font-weight:600;">募集情報</span>${statusBadgeHtml}</div>`;
+    }
+    gridHtml += '<div style="display: grid; grid-template-columns: auto auto 1fr; row-gap: 8px; column-gap: 12px; font-size: 1rem; align-items: baseline;">';
     // テーブルヘッダー
     gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">日付</div>`;
     gridHtml += `<div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 4px;">区分</div>`;
@@ -144,12 +164,46 @@ function openDrawer(date, events) {
     const pref = event.consecutivePreference || event.extendedProps?.consecutivePreference || parsedPref || '';
     const prefHtml = pref ? `&nbsp;&nbsp;💡連日通し希望💡 ${pref}` : '';
 
+    // セクション人数をHTML化（日×セクション終了対応）
+    const buildCapacityCell = (dateStr, dayIndex) => {
+        const ps = event.parsedSections || event.extendedProps?.sections || {};
+        const dailyCaps = extractDailyCapacities(event.description, event.section);
+        const abbrevMap = { stage: '舞', sound: '音', lighting: '照' };
+        const secKeys = ['stage', 'sound', 'lighting'];
+        // 日ごとの個別セクション数をパース
+        const dayBlock = dailyCaps[dayIndex];
+        let parts = [];
+        for (const sk of secKeys) {
+            let count = ps[sk] || 0;
+            // dayBlockから個別の数を取得（"舞2" "音1"等）
+            if (dayBlock && typeof dayBlock === 'string') {
+                const m = dayBlock.match(new RegExp((abbrevMap[sk] || sk) + '(\\d+)'));
+                if (m) count = parseInt(m[1], 10);
+                const m2 = dayBlock.match(new RegExp((abbrevMap[sk] || sk) + '/(\\d+)'));
+                if (m2) count = parseInt(m2[1], 10);
+            }
+            if (count <= 0) continue;
+            const label = `${abbrevMap[sk]}${count}`;
+            // この日×セクションが終了かチェック
+            const isDaySec = isDaySecClosed(eventKey, dateStr, sk, isBulkClosed, closedDaysList, closedSecsList, closedDaySecs);
+            if (isDaySec) {
+                parts.push(`<span style="display:inline-block;position:relative;"><span style="font-size:0.55rem;display:block;color:#f87171;line-height:1;margin-bottom:1px;">${sectionNameMap[sk] || sk}終了</span><span style="opacity:0.4;text-decoration:line-through;text-decoration-color:#f87171;text-decoration-thickness:2px;">${label}</span></span>`);
+            } else {
+                parts.push(label);
+            }
+        }
+        return parts.length > 0 ? parts.join(' ') : getCapacity(dayIndex);
+    };
+
+    const sectionNameMap = { stage: '舞台', sound: '音響', lighting: '照明' };
+
     if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
         event.relatedDates.forEach((dateStr, i) => {
             const d = new Date(dateStr);
+            const ds = d.toISOString().split('T')[0];
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(d)}</div>`;
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(i)}</div>`;
-            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(i)}</div>`;
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${buildCapacityCell(ds, i)}</div>`;
         });
         gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${event.relatedDates.length}日間）${prefHtml}</div>`;
     } else if (event.startDate !== event.endDate) {
@@ -157,15 +211,17 @@ function openDrawer(date, events) {
         for (let i = 0; i < dayDiff; i++) {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
+            const ds = d.toISOString().split('T')[0];
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(d)}</div>`;
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(i)}</div>`;
-            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(i)}</div>`;
+            gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${buildCapacityCell(ds, i)}</div>`;
         }
         gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${dayDiff}日間）${prefHtml}</div>`;
     } else {
+        const ds = startDate.toISOString().split('T')[0];
         gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(startDate)}</div>`;
         gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(0)}</div>`;
-        gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getCapacity(0)}</div>`;
+        gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${buildCapacityCell(ds, 0)}</div>`;
         if (pref) {
             gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">${prefHtml}</div>`;
         }
@@ -216,12 +272,11 @@ function openDrawer(date, events) {
     // 日付選択の表示/非表示を設定
     setupDateSelection(event);
 
-    // イベントキーを生成
-    const eventKey = `${event.title}_${event.startDate}`;
+    // イベントキーを currentSelectedEvent に保存（テーブル部で既に生成済み）
     currentSelectedEvent.eventKey = eventKey;
 
     // 募集完了状態の確認（全体）
-    const isClosed = recruitmentStatuses[eventKey] === true;
+    const isClosed = isBulkClosed;
     const formSection = document.querySelector('.drawer-form-section');
     const noticeEl = document.getElementById('drawerNotice');
 
@@ -234,9 +289,7 @@ function openDrawer(date, events) {
     if (existingOverlay) existingOverlay.remove();
 
     // 部分終了の情報を収集
-    const closedDays = getClosedDays(eventKey);
-    const closedSections = getClosedSections(eventKey);
-    const hasPartialClose = closedDays.length > 0 || closedSections.length > 0;
+    const hasPartialClose = closedDaysList.length > 0 || closedSecsList.length > 0 || closedDaySecs.length > 0;
 
     if (isClosed) {
         if (formSection) formSection.style.display = 'none';
@@ -252,9 +305,12 @@ function openDrawer(date, events) {
         // 部分終了の注記を追加
         if (hasPartialClose) {
             let partialNotes = [];
-            if (closedDays.length > 0) partialNotes.push(closedDays.join(', ') + ' は募集終了');
             const secMap = { stage: '舞台', sound: '音響', lighting: '照明' };
-            if (closedSections.length > 0) partialNotes.push(closedSections.map(s => secMap[s] || s).join('・') + ' は募集終了');
+            if (closedDaysList.length > 0) partialNotes.push(closedDaysList.join(', ') + ' は募集終了');
+            if (closedSecsList.length > 0) partialNotes.push(closedSecsList.map(s => secMap[s] || s).join('・') + ' は募集終了');
+            closedDaySecs.forEach(ds => {
+                partialNotes.push(`${ds.day} ${secMap[ds.sec] || ds.sec} は募集終了`);
+            });
             noticeFooter.textContent = '⚠️ ' + partialNotes.join(' / ');
             noticeFooter.style.display = '';
         }
@@ -638,6 +694,32 @@ function getClosedSections(baseEventKey) {
 }
 
 /**
+ * 終了済みの日×セクション組み合わせ一覧を取得
+ */
+function getClosedDaySections(baseEventKey) {
+    const closed = [];
+    for (const key in recruitmentStatuses) {
+        if (key.startsWith(baseEventKey + '__day:') && key.includes('__sec:') && recruitmentStatuses[key]) {
+            const dayMatch = key.match(/__day:(\d{4}-\d{2}-\d{2})/);
+            const secMatch = key.match(/__sec:(\w+)/);
+            if (dayMatch && secMatch) closed.push({ day: dayMatch[1], sec: secMatch[1] });
+        }
+    }
+    return closed;
+}
+
+/**
+ * 特定の日×セクションが終了かどうか判定
+ * 優先順: 全体終了 > 日終了 > セクション終了 > 日×セクション終了
+ */
+function isDaySecClosed(baseKey, dateStr, sectionKey, isBulkClosed, closedDays, closedSecs, closedDaySecs) {
+    if (isBulkClosed) return true;
+    if (closedDays.includes(dateStr)) return true;
+    if (closedSecs.includes(sectionKey)) return true;
+    return closedDaySecs.some(ds => ds.day === dateStr && ds.sec === sectionKey);
+}
+
+/**
  * イベントの日付リストを取得
  */
 function getEventDates(event) {
@@ -715,59 +797,101 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
     bulkSection.appendChild(bulkBtn);
     panel.appendChild(bulkSection);
 
-    // === 日別終了 ===
+    // === 日×セクション マトリックス ===
     const dates = getEventDates(event);
-    if (dates.length > 1) {
-        const daySection = createAdminSection('📅', '日別終了');
+    const sections = getEventSections(event);
+    if (dates.length > 0 && sections.length > 0) {
+        const matrixSection = createAdminSection('📅🎭', '日別 × セクション別');
         if (isBulkClosed) {
-            daySection.style.opacity = '0.35';
-            daySection.style.pointerEvents = 'none';
-            daySection.querySelector('.admin-section-title-text').textContent += '（一括終了中のため無効）';
+            matrixSection.style.opacity = '0.35';
+            matrixSection.style.pointerEvents = 'none';
+            matrixSection.querySelector('.admin-section-title-text').textContent += '（一括終了中のため無効）';
         }
+
         const closedDays = getClosedDays(eventKey);
+        const closedSecs = getClosedSections(eventKey);
+        const closedDaySecs = getClosedDaySections(eventKey);
+
+        // マトリックステーブル
+        const table = document.createElement('table');
+        table.style.cssText = 'width:100%;border-collapse:collapse;font-size:0.78rem;';
+
+        // ヘッダー行
+        const thead = document.createElement('thead');
+        let thRow = '<tr><th style="text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-weight:600;font-size:0.7rem;border-bottom:1px solid rgba(255,255,255,0.1);"></th>';
+        sections.forEach(sec => {
+            thRow += `<th style="text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-weight:600;font-size:0.7rem;border-bottom:1px solid rgba(255,255,255,0.1);">${sec.name}</th>`;
+        });
+        thRow += '</tr>';
+        thead.innerHTML = thRow;
+        table.appendChild(thead);
+
+        // データ行
+        const tbody = document.createElement('tbody');
         dates.forEach((d, i) => {
             const dateStr = d.toISOString().split('T')[0];
-            const isDayClosed = isBulkClosed || closedDays.includes(dateStr);
-            const row = createToggleRow(
-                formatDateShortJP(d),
-                `${i+1}日目`,
-                isDayClosed,
-                isBulkClosed,
-                () => toggleRecruitment(eventKey, hall, !isDayClosed, dateStr, null)
-            );
-            daySection.appendChild(row);
-        });
-        panel.appendChild(daySection);
-    }
+            const tr = document.createElement('tr');
 
-    // === セクション別終了 ===
-    const sections = getEventSections(event);
-    if (sections.length > 1) {
-        const secSection = createAdminSection('🎭', 'セクション別終了');
-        if (isBulkClosed) {
-            secSection.style.opacity = '0.35';
-            secSection.style.pointerEvents = 'none';
-            secSection.querySelector('.admin-section-title-text').textContent += '（一括終了中のため無効）';
-        }
-        const closedSecs = getClosedSections(eventKey);
-        sections.forEach(sec => {
-            const isSecClosed = isBulkClosed || closedSecs.includes(sec.key);
-            const row = createToggleRow(
-                sec.name,
-                `${sec.count}名募集`,
-                isSecClosed,
-                isBulkClosed,
-                () => toggleRecruitment(eventKey, hall, !isSecClosed, null, sec.key)
-            );
-            secSection.appendChild(row);
+            // 日付セル
+            const tdDay = document.createElement('td');
+            tdDay.style.cssText = 'padding:6px 8px;font-weight:600;white-space:nowrap;vertical-align:middle;border-bottom:1px solid rgba(255,255,255,0.04);';
+            tdDay.innerHTML = `${formatDateShortJP(d)}<br><span style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${i+1}日目</span>`;
+            tr.appendChild(tdDay);
+
+            // 各セクションセル
+            sections.forEach(sec => {
+                const td = document.createElement('td');
+                td.style.cssText = 'padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04);';
+                const isClosed = isDaySecClosed(eventKey, dateStr, sec.key, isBulkClosed, closedDays, closedSecs, closedDaySecs);
+
+                const toggle = document.createElement('div');
+                toggle.style.cssText = 'display:flex;align-items:center;gap:5px;';
+
+                const dot = document.createElement('span');
+                dot.style.cssText = `width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${isClosed ? '#f87171' : '#4ade80'};box-shadow:0 0 6px ${isClosed ? 'rgba(248,113,113,0.4)' : 'rgba(74,222,128,0.4)'};`;
+                toggle.appendChild(dot);
+
+                if (isClosed && !isBulkClosed) {
+                    const badge = document.createElement('span');
+                    badge.style.cssText = 'font-size:0.6rem;background:rgba(239,68,68,0.15);color:#f87171;padding:1px 5px;border-radius:4px;white-space:nowrap;';
+                    badge.textContent = '終了済';
+                    toggle.appendChild(badge);
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.style.cssText = 'padding:3px 8px;border:1px solid rgba(74,222,128,0.25);border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;background:rgba(74,222,128,0.12);color:#4ade80;white-space:nowrap;';
+                    btn.textContent = '再開';
+                    btn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, sec.key);
+                    toggle.appendChild(btn);
+                } else if (!isBulkClosed) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.style.cssText = 'padding:3px 8px;border:1px solid rgba(239,68,68,0.25);border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,0.12);color:#f87171;white-space:nowrap;';
+                    btn.textContent = '終了';
+                    btn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, sec.key);
+                    toggle.appendChild(btn);
+                } else {
+                    const dash = document.createElement('span');
+                    dash.style.cssText = 'font-size:0.7rem;color:rgba(255,255,255,0.25);';
+                    dash.textContent = 'ー';
+                    toggle.appendChild(dash);
+                }
+
+                td.appendChild(toggle);
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
         });
-        panel.appendChild(secSection);
+        table.appendChild(tbody);
+        matrixSection.appendChild(table);
+        panel.appendChild(matrixSection);
     }
 
     // 注意書き
     const note = document.createElement('div');
     note.style.cssText = 'font-size:0.65rem;color:rgba(255,255,255,0.3);padding:8px 16px 12px;line-height:1.5;';
-    note.textContent = '※ 一括終了すると日別・セクション別の設定は無効になります';
+    note.textContent = '※ 一括終了すると全てのセルが無効になります';
     panel.appendChild(note);
 
     return panel;
