@@ -591,7 +591,9 @@ async function toggleRecruitment(eventKey, hall, newStatus, targetDay, targetSec
     const email = localStorage.getItem('zouin_staff_name') || '';
     let confirmMsg = '';
     const secMap = { stage: '舞台', sound: '音響', lighting: '照明' };
-    if (targetDay) {
+    if (targetDay && targetSection) {
+        confirmMsg = newStatus ? `${targetDay}の ${secMap[targetSection] || targetSection} の募集を終了しますか？` : `${targetDay}の ${secMap[targetSection] || targetSection} の募集を再開しますか？`;
+    } else if (targetDay) {
         confirmMsg = newStatus ? `${targetDay} の募集を終了しますか？` : `${targetDay} の募集を再開しますか？`;
     } else if (targetSection) {
         confirmMsg = newStatus ? `${secMap[targetSection] || targetSection}の募集を終了しますか？` : `${secMap[targetSection] || targetSection}の募集を再開しますか？`;
@@ -897,14 +899,14 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.style.cssText = 'padding:3px 8px;border:1px solid rgba(74,222,128,0.25);border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;background:rgba(74,222,128,0.12);color:#4ade80;white-space:nowrap;';
-                    btn.textContent = '再開';
+                    btn.textContent = '募集再開';
                     btn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, sec.key);
                     toggle.appendChild(btn);
                 } else if (!isBulkClosed) {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.style.cssText = 'padding:3px 8px;border:1px solid rgba(239,68,68,0.25);border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,0.12);color:#f87171;white-space:nowrap;';
-                    btn.textContent = '終了';
+                    btn.textContent = '募集終了';
                     btn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, sec.key);
                     toggle.appendChild(btn);
                 } else {
