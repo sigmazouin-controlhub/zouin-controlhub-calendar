@@ -164,6 +164,8 @@ function openDrawer(date, events) {
     const pref = event.consecutivePreference || event.extendedProps?.consecutivePreference || parsedPref || '';
     const prefHtml = pref ? `&nbsp;&nbsp;💡連日通し希望💡 ${pref}` : '';
 
+    const sectionNameMap = { stage: '舞台', sound: '音響', lighting: '照明' };
+
     // セクション人数をHTML化（日×セクション終了対応）
     const buildCapacityCell = (dateStr, dayIndex) => {
         const ps = event.parsedSections || event.extendedProps?.sections || {};
@@ -195,12 +197,10 @@ function openDrawer(date, events) {
         return parts.length > 0 ? parts.join(' ') : getCapacity(dayIndex);
     };
 
-    const sectionNameMap = { stage: '舞台', sound: '音響', lighting: '照明' };
-
     if (event.groupId && event.relatedDates && event.relatedDates.length > 1) {
         event.relatedDates.forEach((dateStr, i) => {
             const d = new Date(dateStr);
-            const ds = d.toISOString().split('T')[0];
+            const ds = getLocalDateString(d);
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(d)}</div>`;
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(i)}</div>`;
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${buildCapacityCell(ds, i)}</div>`;
@@ -211,14 +211,14 @@ function openDrawer(date, events) {
         for (let i = 0; i < dayDiff; i++) {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
-            const ds = d.toISOString().split('T')[0];
+            const ds = getLocalDateString(d);
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(d)}</div>`;
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(i)}</div>`;
             gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${buildCapacityCell(ds, i)}</div>`;
         }
         gridHtml += `<div style="grid-column: 1 / -1; margin-top:2px; font-size:0.85em; opacity:0.8;">（${dayDiff}日間）${prefHtml}</div>`;
     } else {
-        const ds = startDate.toISOString().split('T')[0];
+        const ds = getLocalDateString(startDate);
         gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${formatDateJP(startDate)}</div>`;
         gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${getSlot(0)}</div>`;
         gridHtml += `<div style="white-space: nowrap; font-weight: bold; color: white;">${buildCapacityCell(ds, 0)}</div>`;
@@ -720,6 +720,17 @@ function isDaySecClosed(baseKey, dateStr, sectionKey, isBulkClosed, closedDays, 
 }
 
 /**
+ * ローカル時間でのYYYY-MM-DD取得
+ */
+function getLocalDateString(date) {
+    if (!date || isNaN(date.getTime())) return '';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+/**
  * イベントの日付リストを取得
  */
 function getEventDates(event) {
@@ -829,7 +840,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
         // データ行
         const tbody = document.createElement('tbody');
         dates.forEach((d, i) => {
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = getLocalDateString(d);
             const tr = document.createElement('tr');
 
             // 日付セル
