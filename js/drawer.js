@@ -855,11 +855,11 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
     // === パターンB & C: 複数日 または 複数セクション（カード表示） ===
     if (dates.length > 0 && sections.length > 0) {
         const matrixSection = document.createElement('div');
-        matrixSection.style.cssText = 'padding:16px 20px;';
+        matrixSection.style.cssText = 'padding:12px 10px;';
         
         // 📅🎭 日別 × セクション別
         const titleEl = document.createElement('div');
-        titleEl.style.cssText = 'font-size:0.95rem;color:#fff;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;';
+        titleEl.style.cssText = 'font-size:0.95rem;color:#fff;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;padding-left:4px;';
         titleEl.innerHTML = `<span>📅🎭</span><span class="admin-section-title-text">日別 × セクション別</span>`;
         if (isBulkClosed) titleEl.innerHTML += '<span style="font-size:0.7rem;color:#f87171;margin-left:8px;">（全体終了中）</span>';
         matrixSection.appendChild(titleEl);
@@ -870,10 +870,10 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
 
         // ヘッダー行 (日付, 舞台, 音響...)
         const headerRow = document.createElement('div');
-        headerRow.style.cssText = 'display:flex;padding-bottom:12px;margin-bottom:8px;color:rgba(255,255,255,0.6);font-size:0.8rem;font-weight:600;text-align:center;';
+        headerRow.style.cssText = 'display:flex;padding-bottom:8px;margin-bottom:6px;color:rgba(255,255,255,0.6);font-size:0.75rem;font-weight:600;text-align:center;';
         
         const dateHeader = document.createElement('div');
-        dateHeader.style.cssText = 'width:90px;flex-shrink:0;';
+        dateHeader.style.cssText = 'width:70px;flex-shrink:0;';
         dateHeader.textContent = '日付';
         headerRow.appendChild(dateHeader);
 
@@ -892,7 +892,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
         
         // 日別操作ヘッダー（スペース調整用）
         const actionHeader = document.createElement('div');
-        actionHeader.style.cssText = 'width:80px;flex-shrink:0;';
+        actionHeader.style.cssText = 'width:65px;flex-shrink:0;';
         secsContainerHeader.appendChild(actionHeader);
 
         headerRow.appendChild(secsContainerHeader);
@@ -903,23 +903,23 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
             const dateStr = getLocalDateString(d);
             
             const card = document.createElement('div');
-            card.style.cssText = 'display:flex;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:12px;overflow:hidden;';
+            card.style.cssText = 'display:flex;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:8px;overflow:hidden;';
             if (isBulkClosed) card.style.opacity = '0.5';
             
             // 左側：日付エリア
             const dateArea = document.createElement('div');
-            dateArea.style.cssText = 'width:90px;flex-shrink:0;background:rgba(148,163,184,0.1);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;border-right:1px solid rgba(255,255,255,0.05);';
+            dateArea.style.cssText = 'width:70px;flex-shrink:0;background:rgba(148,163,184,0.1);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px;border-right:1px solid rgba(255,255,255,0.05);';
             
             const pill = document.createElement('div');
-            pill.style.cssText = 'background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8);font-size:0.65rem;padding:2px 8px;border-radius:12px;margin-bottom:8px;font-weight:600;';
+            pill.style.cssText = 'background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8);font-size:0.6rem;padding:2px 6px;border-radius:12px;margin-bottom:6px;font-weight:600;';
             pill.textContent = `${i+1}日目`;
             
             const dayText = document.createElement('div');
-            dayText.style.cssText = 'font-size:1.4rem;font-weight:700;color:#fff;line-height:1.2;';
+            dayText.style.cssText = 'font-size:1.15rem;font-weight:700;color:#fff;line-height:1.2;';
             dayText.textContent = `${d.getMonth()+1}/${d.getDate()}`;
             
             const wdText = document.createElement('div');
-            wdText.style.cssText = 'font-size:0.85rem;color:rgba(255,255,255,0.7);font-weight:600;margin-top:2px;';
+            wdText.style.cssText = 'font-size:0.75rem;color:rgba(255,255,255,0.7);font-weight:600;margin-top:2px;';
             const wd = ['日','月','火','水','木','金','土'];
             wdText.textContent = `(${wd[d.getDay()]})`;
             
@@ -930,7 +930,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
 
             // 右側：セクションエリア
             const secsArea = document.createElement('div');
-            secsArea.style.cssText = 'flex:1;display:flex;align-items:center;padding:12px 0;';
+            secsArea.style.cssText = 'flex:1;display:flex;align-items:center;padding:8px 0;';
             
             sections.forEach(sec => {
                 const secCol = document.createElement('div');
@@ -939,16 +939,16 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
                 const isClosed = isDaySecClosed(eventKey, dateStr, sec.key, isBulkClosed, closedDays, closedSecs, closedDaySecs);
 
                 const dot = document.createElement('div');
-                dot.style.cssText = `width:10px;height:10px;border-radius:50%;margin-bottom:10px;background:${isClosed ? '#f87171' : '#4ade80'};box-shadow:0 0 8px ${isClosed ? 'rgba(248,113,113,0.5)' : 'rgba(74,222,128,0.5)'};`;
+                dot.style.cssText = `width:8px;height:8px;border-radius:50%;margin-bottom:8px;background:${isClosed ? '#f87171' : '#4ade80'};box-shadow:0 0 8px ${isClosed ? 'rgba(248,113,113,0.5)' : 'rgba(74,222,128,0.5)'};`;
                 
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 if (isClosed) {
-                    btn.style.cssText = 'padding:6px 14px;border:1px solid rgba(74,222,128,0.3);border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.1);color:#4ade80;';
+                    btn.style.cssText = 'padding:4px 8px;border:1px solid rgba(74,222,128,0.3);border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.1);color:#4ade80;';
                     btn.textContent = '再開';
                     if(!isBulkClosed) btn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, sec.key);
                 } else {
-                    btn.style.cssText = 'padding:6px 14px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.1);color:#f87171;';
+                    btn.style.cssText = 'padding:4px 8px;border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.1);color:#f87171;';
                     btn.textContent = '終了';
                     if(!isBulkClosed) btn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, sec.key);
                 }
@@ -958,7 +958,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
                 
                 // 完了テキスト（デザイン再現）
                 const statusText = document.createElement('div');
-                statusText.style.cssText = `font-size:0.65rem;color:rgba(255,255,255,0.5);margin-top:8px;opacity:${isClosed ? '1' : '0'};transition:opacity 0.2s;`;
+                statusText.style.cssText = `font-size:0.55rem;color:rgba(255,255,255,0.5);margin-top:6px;opacity:${isClosed ? '1' : '0'};transition:opacity 0.2s;`;
                 statusText.innerHTML = '☑ 完了';
                 secCol.appendChild(statusText);
                 
@@ -967,7 +967,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
 
             // 1日終了ボタン
             const dayActionCol = document.createElement('div');
-            dayActionCol.style.cssText = 'width:80px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0 12px;';
+            dayActionCol.style.cssText = 'width:65px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0 6px;';
             
             let isAllSecsOnDayClosed = true;
             for (const sec of sections) {
@@ -980,11 +980,11 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
             const dayBtn = document.createElement('button');
             dayBtn.type = 'button';
             if (isAllSecsOnDayClosed) {
-                dayBtn.style.cssText = 'width:100%;height:64px;border:1px solid rgba(74,222,128,0.3);border-radius:10px;font-size:0.75rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.1);color:#4ade80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;line-height:1.3;';
+                dayBtn.style.cssText = 'width:100%;height:52px;border:1px solid rgba(74,222,128,0.3);border-radius:8px;font-size:0.65rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.1);color:#4ade80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.2;';
                 dayBtn.innerHTML = '<span>▶</span><span>この日を<br>再開</span>';
                 if(!isBulkClosed) dayBtn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, null);
             } else {
-                dayBtn.style.cssText = 'width:100%;height:64px;border:1px solid rgba(239,68,68,0.3);border-radius:10px;font-size:0.75rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.1);color:#f87171;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;line-height:1.3;';
+                dayBtn.style.cssText = 'width:100%;height:52px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;font-size:0.65rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.1);color:#f87171;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.2;';
                 dayBtn.innerHTML = '<span>■</span><span>この日を<br>終了</span>';
                 if(!isBulkClosed) dayBtn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, null);
             }
