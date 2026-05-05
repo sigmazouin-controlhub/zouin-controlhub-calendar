@@ -842,7 +842,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
             actionBtn.textContent = '▶ 募集を再開する';
         } else {
             actionBtn.style.cssText = 'width:100%;padding:16px;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;box-shadow:0 4px 15px rgba(220,38,38,0.3);';
-            actionBtn.textContent = '◼ この案件の募集を締め切る';
+            actionBtn.textContent = '◼ この案件の募集を終了';
         }
         actionBtn.onclick = () => toggleRecruitment(eventKey, hall, !isClosed, dateStr, secKey);
         
