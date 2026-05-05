@@ -695,8 +695,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function getClosedDays(baseEventKey) {
     const closed = [];
     for (const key in recruitmentStatuses) {
-        if (key.startsWith(baseEventKey + '__day:') && recruitmentStatuses[key]) {
-            const dayMatch = key.match(/__day:(\d{4}-\d{2}-\d{2})/);
+        if (key.startsWith(baseEventKey + '__day:') && !key.includes('__sec:') && recruitmentStatuses[key]) {
+            const dayMatch = key.match(/__day:(\d{4}-\d{2}-\d{2})$/);
             if (dayMatch) closed.push(dayMatch[1]);
         }
     }
@@ -852,48 +852,123 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
         return panel;
     }
 
-    // === パターンB & C: 複数日 または 複数セクション（マトリクス表示） ===
+    // === パターンB & C: 複数日 または 複数セクション（カード表示） ===
     if (dates.length > 0 && sections.length > 0) {
-        const matrixSection = createAdminSection('📅🎭', '日別 × セクション別');
-        if (isBulkClosed) {
-            matrixSection.style.opacity = '0.35';
-            matrixSection.style.pointerEvents = 'none';
-            matrixSection.querySelector('.admin-section-title-text').textContent += '（全体終了中）';
-        }
+        const matrixSection = document.createElement('div');
+        matrixSection.style.cssText = 'padding:16px 20px;';
+        
+        // 📅🎭 日別 × セクション別
+        const titleEl = document.createElement('div');
+        titleEl.style.cssText = 'font-size:0.95rem;color:#fff;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;';
+        titleEl.innerHTML = `<span>📅🎭</span><span class="admin-section-title-text">日別 × セクション別</span>`;
+        if (isBulkClosed) titleEl.innerHTML += '<span style="font-size:0.7rem;color:#f87171;margin-left:8px;">（全体終了中）</span>';
+        matrixSection.appendChild(titleEl);
 
         const closedDays = getClosedDays(eventKey);
         const closedSecs = getClosedSections(eventKey);
         const closedDaySecs = getClosedDaySections(eventKey);
 
-        // マトリックステーブルを囲むスクロールコンテナ
-        const tableContainer = document.createElement('div');
-        tableContainer.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;padding-bottom:12px;';
+        // ヘッダー行 (日付, 舞台, 音響...)
+        const headerRow = document.createElement('div');
+        headerRow.style.cssText = 'display:flex;padding-bottom:12px;margin-bottom:8px;color:rgba(255,255,255,0.6);font-size:0.8rem;font-weight:600;text-align:center;';
+        
+        const dateHeader = document.createElement('div');
+        dateHeader.style.cssText = 'width:90px;flex-shrink:0;';
+        dateHeader.textContent = '日付';
+        headerRow.appendChild(dateHeader);
 
-        // マトリックステーブル
-        const table = document.createElement('table');
-        table.style.cssText = 'width:max-content;min-width:100%;border-collapse:collapse;font-size:0.78rem;';
-
-        // ヘッダー行
-        const thead = document.createElement('thead');
-        let thRow = '<tr><th style="text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-weight:600;font-size:0.7rem;border-bottom:1px solid rgba(255,255,255,0.1);position:sticky;left:0;background:rgba(30,41,59,0.9);z-index:1;"></th>';
+        const secsContainerHeader = document.createElement('div');
+        secsContainerHeader.style.cssText = 'flex:1;display:flex;justify-content:space-around;';
         sections.forEach(sec => {
-            thRow += `<th style="text-align:left;padding:6px 8px;color:rgba(255,255,255,0.5);font-weight:600;font-size:0.7rem;border-bottom:1px solid rgba(255,255,255,0.1);">${sec.name}</th>`;
+            const secH = document.createElement('div');
+            // Add emoji icons based on section name
+            let emoji = '';
+            if (sec.name.includes('舞台')) emoji = '🎭 ';
+            else if (sec.name.includes('音響')) emoji = '🎵 ';
+            else if (sec.name.includes('照明')) emoji = '💡 ';
+            secH.innerHTML = `<span style="color:#60a5fa">${emoji}</span>${sec.name}`;
+            secsContainerHeader.appendChild(secH);
         });
-        thRow += '</tr>';
-        thead.innerHTML = thRow;
-        table.appendChild(thead);
+        
+        // 日別操作ヘッダー（スペース調整用）
+        const actionHeader = document.createElement('div');
+        actionHeader.style.cssText = 'width:80px;flex-shrink:0;';
+        secsContainerHeader.appendChild(actionHeader);
 
-        // データ行
-        const tbody = document.createElement('tbody');
+        headerRow.appendChild(secsContainerHeader);
+        matrixSection.appendChild(headerRow);
+
+        // 各日のカード
         dates.forEach((d, i) => {
             const dateStr = getLocalDateString(d);
-            const tr = document.createElement('tr');
-
-            // 日付セル（固定列＋1日終了ボタン）
-            const tdDay = document.createElement('td');
-            tdDay.style.cssText = 'padding:10px 8px;font-weight:600;white-space:nowrap;vertical-align:top;border-bottom:1px solid rgba(255,255,255,0.04);position:sticky;left:0;background:rgba(30,41,59,0.9);z-index:1;box-shadow:1px 0 3px rgba(0,0,0,0.1);';
             
-            // この日の全セクションが終了しているか判定
+            const card = document.createElement('div');
+            card.style.cssText = 'display:flex;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:12px;overflow:hidden;';
+            if (isBulkClosed) card.style.opacity = '0.5';
+            
+            // 左側：日付エリア
+            const dateArea = document.createElement('div');
+            dateArea.style.cssText = 'width:90px;flex-shrink:0;background:rgba(148,163,184,0.1);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;border-right:1px solid rgba(255,255,255,0.05);';
+            
+            const pill = document.createElement('div');
+            pill.style.cssText = 'background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.8);font-size:0.65rem;padding:2px 8px;border-radius:12px;margin-bottom:8px;font-weight:600;';
+            pill.textContent = `${i+1}日目`;
+            
+            const dayText = document.createElement('div');
+            dayText.style.cssText = 'font-size:1.4rem;font-weight:700;color:#fff;line-height:1.2;';
+            dayText.textContent = `${d.getMonth()+1}/${d.getDate()}`;
+            
+            const wdText = document.createElement('div');
+            wdText.style.cssText = 'font-size:0.85rem;color:rgba(255,255,255,0.7);font-weight:600;margin-top:2px;';
+            const wd = ['日','月','火','水','木','金','土'];
+            wdText.textContent = `(${wd[d.getDay()]})`;
+            
+            dateArea.appendChild(pill);
+            dateArea.appendChild(dayText);
+            dateArea.appendChild(wdText);
+            card.appendChild(dateArea);
+
+            // 右側：セクションエリア
+            const secsArea = document.createElement('div');
+            secsArea.style.cssText = 'flex:1;display:flex;align-items:center;padding:12px 0;';
+            
+            sections.forEach(sec => {
+                const secCol = document.createElement('div');
+                secCol.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;border-right:1px solid rgba(255,255,255,0.05);';
+                
+                const isClosed = isDaySecClosed(eventKey, dateStr, sec.key, isBulkClosed, closedDays, closedSecs, closedDaySecs);
+
+                const dot = document.createElement('div');
+                dot.style.cssText = `width:10px;height:10px;border-radius:50%;margin-bottom:10px;background:${isClosed ? '#f87171' : '#4ade80'};box-shadow:0 0 8px ${isClosed ? 'rgba(248,113,113,0.5)' : 'rgba(74,222,128,0.5)'};`;
+                
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                if (isClosed) {
+                    btn.style.cssText = 'padding:6px 14px;border:1px solid rgba(74,222,128,0.3);border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.1);color:#4ade80;';
+                    btn.textContent = '再開';
+                    if(!isBulkClosed) btn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, sec.key);
+                } else {
+                    btn.style.cssText = 'padding:6px 14px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;font-size:0.8rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.1);color:#f87171;';
+                    btn.textContent = '終了';
+                    if(!isBulkClosed) btn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, sec.key);
+                }
+
+                secCol.appendChild(dot);
+                secCol.appendChild(btn);
+                
+                // 完了テキスト（デザイン再現）
+                const statusText = document.createElement('div');
+                statusText.style.cssText = `font-size:0.65rem;color:rgba(255,255,255,0.5);margin-top:8px;opacity:${isClosed ? '1' : '0'};transition:opacity 0.2s;`;
+                statusText.innerHTML = '☑ 完了';
+                secCol.appendChild(statusText);
+                
+                secsArea.appendChild(secCol);
+            });
+
+            // 1日終了ボタン
+            const dayActionCol = document.createElement('div');
+            dayActionCol.style.cssText = 'width:80px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0 12px;';
+            
             let isAllSecsOnDayClosed = true;
             for (const sec of sections) {
                 if (!isDaySecClosed(eventKey, dateStr, sec.key, isBulkClosed, closedDays, closedSecs, closedDaySecs)) {
@@ -902,74 +977,25 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
                 }
             }
 
-            const dateDiv = document.createElement('div');
-            dateDiv.innerHTML = `${formatDateShortJP(d)} <span style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${i+1}日目</span>`;
-            dateDiv.style.marginBottom = '8px';
-            tdDay.appendChild(dateDiv);
-
-            const dayActionBtn = document.createElement('button');
-            dayActionBtn.type = 'button';
+            const dayBtn = document.createElement('button');
+            dayBtn.type = 'button';
             if (isAllSecsOnDayClosed) {
-                dayActionBtn.style.cssText = 'padding:5px 8px;border:1px solid rgba(74,222,128,0.3);border-radius:6px;font-size:0.65rem;font-weight:600;cursor:pointer;background:rgba(74,222,128,0.15);color:#4ade80;width:100%;display:flex;align-items:center;justify-content:center;gap:4px;';
-                dayActionBtn.innerHTML = '▶ この日を再開';
-                dayActionBtn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, null);
+                dayBtn.style.cssText = 'width:100%;height:64px;border:1px solid rgba(74,222,128,0.3);border-radius:10px;font-size:0.75rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.1);color:#4ade80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;line-height:1.3;';
+                dayBtn.innerHTML = '<span>▶</span><span>この日を<br>再開</span>';
+                if(!isBulkClosed) dayBtn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, null);
             } else {
-                dayActionBtn.style.cssText = 'padding:5px 8px;border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:0.65rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,0.15);color:#f87171;width:100%;display:flex;align-items:center;justify-content:center;gap:4px;';
-                dayActionBtn.innerHTML = '◼ この日を終了';
-                dayActionBtn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, null);
+                dayBtn.style.cssText = 'width:100%;height:64px;border:1px solid rgba(239,68,68,0.3);border-radius:10px;font-size:0.75rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.1);color:#f87171;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;line-height:1.3;';
+                dayBtn.innerHTML = '<span>■</span><span>この日を<br>終了</span>';
+                if(!isBulkClosed) dayBtn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, null);
             }
-            tdDay.appendChild(dayActionBtn);
             
-            tr.appendChild(tdDay);
-
-            // 各セクションセル
-            sections.forEach(sec => {
-                const td = document.createElement('td');
-                td.style.cssText = 'padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;';
-                const isClosed = isDaySecClosed(eventKey, dateStr, sec.key, isBulkClosed, closedDays, closedSecs, closedDaySecs);
-
-                const toggle = document.createElement('div');
-                toggle.style.cssText = 'display:flex;align-items:center;gap:5px;flex-wrap:wrap;';
-
-                const dot = document.createElement('span');
-                dot.style.cssText = `width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${isClosed ? '#f87171' : '#4ade80'};box-shadow:0 0 6px ${isClosed ? 'rgba(248,113,113,0.4)' : 'rgba(74,222,128,0.4)'};`;
-                toggle.appendChild(dot);
-
-                if (isClosed && !isBulkClosed) {
-                    const badge = document.createElement('span');
-                    badge.style.cssText = 'font-size:0.6rem;background:rgba(239,68,68,0.15);color:#f87171;padding:1px 5px;border-radius:4px;white-space:nowrap;margin-right:2px;';
-                    badge.textContent = '終了済';
-                    toggle.appendChild(badge);
-
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.style.cssText = 'padding:3px 8px;border:1px solid rgba(74,222,128,0.25);border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;background:rgba(74,222,128,0.12);color:#4ade80;white-space:nowrap;';
-                    btn.textContent = '再開';
-                    btn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, sec.key);
-                    toggle.appendChild(btn);
-                } else if (!isBulkClosed) {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.style.cssText = 'padding:3px 8px;border:1px solid rgba(239,68,68,0.25);border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,0.12);color:#f87171;white-space:nowrap;';
-                    btn.textContent = '終了';
-                    btn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, sec.key);
-                    toggle.appendChild(btn);
-                } else {
-                    const dash = document.createElement('span');
-                    dash.style.cssText = 'font-size:0.7rem;color:rgba(255,255,255,0.25);';
-                    dash.textContent = 'ー';
-                    toggle.appendChild(dash);
-                }
-
-                td.appendChild(toggle);
-                tr.appendChild(td);
-            });
-
-            tbody.appendChild(tr);
+            dayActionCol.appendChild(dayBtn);
+            secsArea.appendChild(dayActionCol);
+            
+            card.appendChild(secsArea);
+            matrixSection.appendChild(card);
         });
-        table.appendChild(tbody);
-        tableContainer.appendChild(table);
-        matrixSection.appendChild(tableContainer);
+
         panel.appendChild(matrixSection);
     }
 
