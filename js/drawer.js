@@ -947,6 +947,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
                     btn.style.cssText = 'padding:4px 8px;border:1px solid rgba(74,222,128,0.3);border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.1);color:#4ade80;';
                     btn.textContent = '再開';
                     if(!isBulkClosed) btn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, sec.key);
+                    else btn.onclick = () => toggleRecruitment(eventKey, hall, false); // 全体再開の抜け道
                 } else {
                     btn.style.cssText = 'padding:4px 8px;border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:0.7rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.1);color:#f87171;';
                     btn.textContent = '終了';
@@ -983,6 +984,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
                 dayBtn.style.cssText = 'width:100%;height:52px;border:1px solid rgba(74,222,128,0.3);border-radius:8px;font-size:0.65rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.1);color:#4ade80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.2;';
                 dayBtn.innerHTML = '<span>▶</span><span>この日を<br>再開</span>';
                 if(!isBulkClosed) dayBtn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, null);
+                else dayBtn.onclick = () => toggleRecruitment(eventKey, hall, false); // 全体再開の抜け道
             } else {
                 dayBtn.style.cssText = 'width:100%;height:52px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;font-size:0.65rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.1);color:#f87171;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.2;';
                 dayBtn.innerHTML = '<span>■</span><span>この日を<br>終了</span>';
