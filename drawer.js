@@ -817,30 +817,48 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
     header.innerHTML = `<span style="font-size:1.1rem;">🔧</span><span style="font-size:0.9rem;font-weight:600;flex:1;">管理者メニュー</span><span style="font-size:0.65rem;background:${badgeBg};color:#f87171;padding:2px 8px;border-radius:10px;font-weight:600;">${badgeText}</span>`;
     panel.appendChild(header);
 
-    // === 一括操作 ===
-    const bulkSection = createAdminSection('⚡', '一括操作');
-    const bulkBtn = document.createElement('button');
-    bulkBtn.type = 'button';
-    if (isBulkClosed) {
-        bulkBtn.style.cssText = 'width:100%;padding:12px;border:none;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 4px 15px rgba(22,163,74,0.3);';
-        bulkBtn.textContent = '▶ 全日程・全セクション 募集再開';
-    } else {
-        bulkBtn.style.cssText = 'width:100%;padding:12px;border:none;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;box-shadow:0 4px 15px rgba(220,38,38,0.3);';
-        bulkBtn.textContent = '◼ 全日程・全セクション 募集終了';
-    }
-    bulkBtn.onclick = () => toggleRecruitment(eventKey, hall, !isBulkClosed);
-    bulkSection.appendChild(bulkBtn);
-    panel.appendChild(bulkSection);
-
-    // === 日×セクション マトリックス ===
     const dates = getEventDates(event);
     const sections = getEventSections(event);
+    const isSingleDay = dates.length === 1;
+    const isSingleSection = sections.length === 1;
+
+    // === パターンA: 1日 × 1セクション ===
+    if (isSingleDay && isSingleSection) {
+        const actionSection = document.createElement('div');
+        actionSection.style.cssText = 'padding:20px 16px;';
+        
+        const dateStr = getLocalDateString(dates[0]);
+        const secKey = sections[0].key;
+        
+        const closedDays = getClosedDays(eventKey);
+        const closedSecs = getClosedSections(eventKey);
+        const closedDaySecs = getClosedDaySections(eventKey);
+        const isClosed = isDaySecClosed(eventKey, dateStr, secKey, isBulkClosed, closedDays, closedSecs, closedDaySecs);
+
+        const actionBtn = document.createElement('button');
+        actionBtn.type = 'button';
+        if (isClosed) {
+            actionBtn.style.cssText = 'width:100%;padding:16px;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 4px 15px rgba(22,163,74,0.3);';
+            actionBtn.textContent = '▶ 募集を再開する';
+        } else {
+            actionBtn.style.cssText = 'width:100%;padding:16px;border:none;border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;box-shadow:0 4px 15px rgba(220,38,38,0.3);';
+            actionBtn.textContent = '◼ この案件の募集を締め切る';
+        }
+        actionBtn.onclick = () => toggleRecruitment(eventKey, hall, !isClosed, dateStr, secKey);
+        
+        actionSection.appendChild(actionBtn);
+        panel.appendChild(actionSection);
+        
+        return panel;
+    }
+
+    // === パターンB & C: 複数日 または 複数セクション（マトリクス表示） ===
     if (dates.length > 0 && sections.length > 0) {
         const matrixSection = createAdminSection('📅🎭', '日別 × セクション別');
         if (isBulkClosed) {
             matrixSection.style.opacity = '0.35';
             matrixSection.style.pointerEvents = 'none';
-            matrixSection.querySelector('.admin-section-title-text').textContent += '（一括終了中のため無効）';
+            matrixSection.querySelector('.admin-section-title-text').textContent += '（全体終了中）';
         }
 
         const closedDays = getClosedDays(eventKey);
@@ -849,7 +867,7 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
 
         // マトリックステーブルを囲むスクロールコンテナ
         const tableContainer = document.createElement('div');
-        tableContainer.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;';
+        tableContainer.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;padding-bottom:12px;';
 
         // マトリックステーブル
         const table = document.createElement('table');
@@ -871,20 +889,47 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
             const dateStr = getLocalDateString(d);
             const tr = document.createElement('tr');
 
-            // 日付セル（固定列）
+            // 日付セル（固定列＋1日終了ボタン）
             const tdDay = document.createElement('td');
-            tdDay.style.cssText = 'padding:6px 8px;font-weight:600;white-space:nowrap;vertical-align:middle;border-bottom:1px solid rgba(255,255,255,0.04);position:sticky;left:0;background:rgba(30,41,59,0.9);z-index:1;box-shadow:1px 0 3px rgba(0,0,0,0.1);';
-            tdDay.innerHTML = `${formatDateShortJP(d)}<br><span style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${i+1}日目</span>`;
+            tdDay.style.cssText = 'padding:10px 8px;font-weight:600;white-space:nowrap;vertical-align:top;border-bottom:1px solid rgba(255,255,255,0.04);position:sticky;left:0;background:rgba(30,41,59,0.9);z-index:1;box-shadow:1px 0 3px rgba(0,0,0,0.1);';
+            
+            // この日の全セクションが終了しているか判定
+            let isAllSecsOnDayClosed = true;
+            for (const sec of sections) {
+                if (!isDaySecClosed(eventKey, dateStr, sec.key, isBulkClosed, closedDays, closedSecs, closedDaySecs)) {
+                    isAllSecsOnDayClosed = false;
+                    break;
+                }
+            }
+
+            const dateDiv = document.createElement('div');
+            dateDiv.innerHTML = `${formatDateShortJP(d)} <span style="font-size:0.6rem;color:rgba(255,255,255,0.3);">${i+1}日目</span>`;
+            dateDiv.style.marginBottom = '8px';
+            tdDay.appendChild(dateDiv);
+
+            const dayActionBtn = document.createElement('button');
+            dayActionBtn.type = 'button';
+            if (isAllSecsOnDayClosed) {
+                dayActionBtn.style.cssText = 'padding:5px 8px;border:1px solid rgba(74,222,128,0.3);border-radius:6px;font-size:0.65rem;font-weight:600;cursor:pointer;background:rgba(74,222,128,0.15);color:#4ade80;width:100%;display:flex;align-items:center;justify-content:center;gap:4px;';
+                dayActionBtn.innerHTML = '▶ この日を再開';
+                dayActionBtn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, null);
+            } else {
+                dayActionBtn.style.cssText = 'padding:5px 8px;border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:0.65rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,0.15);color:#f87171;width:100%;display:flex;align-items:center;justify-content:center;gap:4px;';
+                dayActionBtn.innerHTML = '◼ この日を終了';
+                dayActionBtn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, null);
+            }
+            tdDay.appendChild(dayActionBtn);
+            
             tr.appendChild(tdDay);
 
             // 各セクションセル
             sections.forEach(sec => {
                 const td = document.createElement('td');
-                td.style.cssText = 'padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.04);';
+                td.style.cssText = 'padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:top;';
                 const isClosed = isDaySecClosed(eventKey, dateStr, sec.key, isBulkClosed, closedDays, closedSecs, closedDaySecs);
 
                 const toggle = document.createElement('div');
-                toggle.style.cssText = 'display:flex;align-items:center;gap:5px;';
+                toggle.style.cssText = 'display:flex;align-items:center;gap:5px;flex-wrap:wrap;';
 
                 const dot = document.createElement('span');
                 dot.style.cssText = `width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${isClosed ? '#f87171' : '#4ade80'};box-shadow:0 0 6px ${isClosed ? 'rgba(248,113,113,0.4)' : 'rgba(74,222,128,0.4)'};`;
@@ -892,21 +937,21 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
 
                 if (isClosed && !isBulkClosed) {
                     const badge = document.createElement('span');
-                    badge.style.cssText = 'font-size:0.6rem;background:rgba(239,68,68,0.15);color:#f87171;padding:1px 5px;border-radius:4px;white-space:nowrap;';
+                    badge.style.cssText = 'font-size:0.6rem;background:rgba(239,68,68,0.15);color:#f87171;padding:1px 5px;border-radius:4px;white-space:nowrap;margin-right:2px;';
                     badge.textContent = '終了済';
                     toggle.appendChild(badge);
 
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.style.cssText = 'padding:3px 8px;border:1px solid rgba(74,222,128,0.25);border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;background:rgba(74,222,128,0.12);color:#4ade80;white-space:nowrap;';
-                    btn.textContent = '募集再開';
+                    btn.textContent = '再開';
                     btn.onclick = () => toggleRecruitment(eventKey, hall, false, dateStr, sec.key);
                     toggle.appendChild(btn);
                 } else if (!isBulkClosed) {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.style.cssText = 'padding:3px 8px;border:1px solid rgba(239,68,68,0.25);border-radius:6px;font-size:0.6rem;font-weight:600;cursor:pointer;background:rgba(239,68,68,0.12);color:#f87171;white-space:nowrap;';
-                    btn.textContent = '募集終了';
+                    btn.textContent = '終了';
                     btn.onclick = () => toggleRecruitment(eventKey, hall, true, dateStr, sec.key);
                     toggle.appendChild(btn);
                 } else {
@@ -927,12 +972,6 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
         matrixSection.appendChild(tableContainer);
         panel.appendChild(matrixSection);
     }
-
-    // 注意書き
-    const note = document.createElement('div');
-    note.style.cssText = 'font-size:0.65rem;color:rgba(255,255,255,0.3);padding:8px 16px 12px;line-height:1.5;';
-    note.textContent = '※ 一括終了すると全てのセルが無効になります';
-    panel.appendChild(note);
 
     return panel;
 }
