@@ -129,7 +129,14 @@ function openDrawer(date, events) {
     const getCapacity = (index) => dailyCapacities[index] || defaultCapacityStr;
 
     // 募集終了ステータスバッジを判定
-    const eventKey = `${event.title}_${event.startDate}`;
+    // グループ化イベントの場合、ベースタイトル＋最初の日付で統一キーを生成
+    let eventKeyTitle = event.title;
+    let eventKeyStartDate = event.startDate;
+    if (event.groupId && event.relatedDates && event.relatedDates.length > 0) {
+        eventKeyTitle = event.groupId; // ベースタイトル（(N/M)サフィックスなし）
+        eventKeyStartDate = event.relatedDates.slice().sort()[0]; // グループ内最初の日付
+    }
+    const eventKey = `${eventKeyTitle}_${eventKeyStartDate}`;
     let isBulkClosed = recruitmentStatuses[eventKey] === true;
     const closedDaysList = getClosedDays(eventKey);
     const closedSecsList = getClosedSections(eventKey);
@@ -630,15 +637,35 @@ async function toggleRecruitment(eventKey, hall, newStatus, targetDay, targetSec
         });
 
         if (result.success) {
-            // 返却されたactualKeyでステータスを更新
-            recruitmentStatuses[result.eventKey] = result.closed;
-            if (!result.closed) delete recruitmentStatuses[result.eventKey];
+            // 即座にクライアントキャッシュを更新（カスケード対応）
+            if (result.closed) {
+                recruitmentStatuses[result.eventKey] = true;
+            } else {
+                // 再開時: 指定キーを削除
+                delete recruitmentStatuses[result.eventKey];
+                // GAS側でカスケード再開された子キーも削除
+                // 例: __day:2026-06-10 を再開 → __day:2026-06-10__sec:stage 等も削除
+                const prefix = result.eventKey + '__';
+                for (const key in recruitmentStatuses) {
+                    if (key.startsWith(prefix)) {
+                        delete recruitmentStatuses[key];
+                    }
+                }
+            }
+
+            // サーバーから最新ステータスを取得して完全同期
+            try {
+                await loadRecruitmentStatuses();
+            } catch (reloadErr) {
+                console.warn('ステータス再読み込み失敗（キャッシュで続行）:', reloadErr);
+            }
+
             // ドロワーを再描画
             if (currentSelectedEvent) {
                 closeDrawer();
                 setTimeout(() => {
                     openDrawer(currentSelectedDate, [currentSelectedEvent]);
-                }, 100);
+                }, 150);
             }
             if (window.calendarApp?.refreshCalendar) {
                 window.calendarApp.refreshCalendar();
@@ -663,15 +690,32 @@ async function loadRecruitmentStatuses() {
             const callbackName = 'statusCallback_' + Date.now();
             window[callbackName] = (data) => {
                 delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
                 resolve(data);
             };
+
+            // タイムアウト処理（10秒）
+            const timeout = setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    console.warn('ステータス取得タイムアウト');
+                    resolve({ success: false });
+                }
+            }, 10000);
+
             const params = new URLSearchParams({
                 action: 'getRecruitmentStatuses',
                 callback: callbackName
             });
             const script = document.createElement('script');
             script.src = GAS_URL + '?' + params.toString();
-            script.onerror = () => resolve({ success: false });
+            script.onerror = () => {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                resolve({ success: false });
+            };
             document.body.appendChild(script);
         });
 
