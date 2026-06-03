@@ -651,6 +651,17 @@ async function toggleRecruitment(eventKey, hall, newStatus, targetDay, targetSec
                         delete recruitmentStatuses[key];
                     }
                 }
+                // セクション一括再開: __sec:Y のみの場合、__day:X__sec:Y も削除
+                const secBulkMatch = result.eventKey.match(/^(.+?)__sec:(\w+)$/);
+                if (secBulkMatch && !result.eventKey.includes('__day:')) {
+                    const baseKey = secBulkMatch[1];
+                    const secSuffix = '__sec:' + secBulkMatch[2];
+                    for (const key in recruitmentStatuses) {
+                        if (key.startsWith(baseKey + '__day:') && key.includes(secSuffix)) {
+                            delete recruitmentStatuses[key];
+                        }
+                    }
+                }
             }
 
             // サーバーから最新ステータスを取得して完全同期
@@ -911,6 +922,53 @@ function buildAdminPanel(event, eventKey, hall, isBulkClosed) {
         const closedDays = getClosedDays(eventKey);
         const closedSecs = getClosedSections(eventKey);
         const closedDaySecs = getClosedDaySections(eventKey);
+
+        // === セクション一括終了/再開ボタン行 ===
+        if (sections.length > 1 && dates.length > 1) {
+            const secBulkRow = document.createElement('div');
+            secBulkRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;padding:0 4px;';
+
+            const sectionColors = { stage: '#10b981', sound: '#0ea5e9', lighting: '#eab308' };
+
+            sections.forEach(sec => {
+                // このセクションが全日程で終了済みか判定
+                let isSecFullyClosed = closedSecs.includes(sec.key);
+                if (!isSecFullyClosed) {
+                    isSecFullyClosed = dates.every(d => {
+                        const ds = getLocalDateString(d);
+                        return isDaySecClosed(eventKey, ds, sec.key, isBulkClosed, closedDays, closedSecs, closedDaySecs);
+                    });
+                }
+
+                const secColor = sectionColors[sec.key] || '#94a3b8';
+                let emoji = '';
+                if (sec.key === 'stage') emoji = '🎭';
+                else if (sec.key === 'sound') emoji = '🎵';
+                else if (sec.key === 'lighting') emoji = '💡';
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+
+                if (isSecFullyClosed) {
+                    btn.style.cssText = `flex:1;min-width:90px;padding:8px 6px;border:1px solid rgba(74,222,128,0.3);border-left:3px solid ${secColor};border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;background:rgba(74,222,128,0.08);color:#4ade80;transition:all 0.2s;`;
+                    btn.textContent = `▶ ${emoji}${sec.name}一括再開`;
+                    if (!isBulkClosed) btn.onclick = () => toggleRecruitment(eventKey, hall, false, null, sec.key);
+                    else btn.onclick = () => toggleRecruitment(eventKey, hall, false);
+                } else {
+                    btn.style.cssText = `flex:1;min-width:90px;padding:8px 6px;border:1px solid rgba(239,68,68,0.3);border-left:3px solid ${secColor};border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;background:rgba(239,68,68,0.08);color:#f87171;transition:all 0.2s;`;
+                    btn.textContent = `■ ${emoji}${sec.name}一括終了`;
+                    if (!isBulkClosed) btn.onclick = () => toggleRecruitment(eventKey, hall, true, null, sec.key);
+                }
+
+                // ホバー効果
+                btn.onmouseenter = () => { btn.style.transform = 'scale(1.02)'; btn.style.filter = 'brightness(1.2)'; };
+                btn.onmouseleave = () => { btn.style.transform = 'scale(1)'; btn.style.filter = 'brightness(1)'; };
+
+                secBulkRow.appendChild(btn);
+            });
+
+            matrixSection.appendChild(secBulkRow);
+        }
 
         // ヘッダー行 (日付, 舞台, 音響...)
         const headerRow = document.createElement('div');
