@@ -3,7 +3,7 @@
  */
 
 // GAS Web App URL
-const DRAWER_GAS_URL = 'https://script.google.com/macros/s/AKfycbxbV2AK-9edfJDLYd5roY5Lj3mcWDfLuVXyrLbkbmj-f0ghreoTpBLLHeze72BAMz6h/exec';
+const DRAWER_GAS_URL = 'https://script.google.com/macros/s/AKfycbwqeiRNp7oueT0NZqxNrn5n4OONm6Y-NUaNhXEIAS5QrR8boqQzG7fdc0VQ_n_sPZ6_/exec';
 
 // DOM要素
 const drawer = document.getElementById('drawer');
