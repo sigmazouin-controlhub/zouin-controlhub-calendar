@@ -12,7 +12,7 @@
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwqeiRNp7oueT0NZqxNrn5n4OONm6Y-NUaNhXEIAS5QrR8boqQzG7fdc0VQ_n_sPZ6_/exec';
 
     // 増員完了報告のリンクURL（ここを変更してください）
-    const REPORT_URL = '';
+    const REPORT_URL = 'https://forms.office.com/r/hP4sUDWgvr';
 
     // ============================================
     // タブ切り替え
