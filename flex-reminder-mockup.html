@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>再通知カラー候補</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111827;
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    padding: 40px 20px;
+  }
+  .page-title { text-align: center; color: #e2e8f0; font-size: 22px; font-weight: bold; margin-bottom: 6px; }
+  .page-desc { text-align: center; color: #64748b; font-size: 13px; margin-bottom: 12px; }
+  .used-colors {
+    text-align: center; margin-bottom: 36px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .used-chip {
+    display: inline-flex; align-items: center; gap: 6px; background: #1e293b; border-radius: 20px; padding: 4px 14px 4px 6px; font-size: 11px; color: #94a3b8;
+  }
+  .used-chip .dot { width: 14px; height: 14px; border-radius: 50%; }
+  .label { color: #94a3b8; font-size: 13px; text-align: center; margin-bottom: 4px; font-weight: bold; }
+  .label-sub { color: #64748b; font-size: 11px; text-align: center; margin-bottom: 10px; }
+  .compare-container { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+  .compare-item { display: flex; flex-direction: column; align-items: center; }
+  .bubble { width: 280px; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .header-outer { padding: 16px; }
+  .header-inner { border-radius: 8px; padding: 14px 16px; text-align: center; }
+  .header-inner .title { color: #fff; font-size: 16px; font-weight: bold; }
+  .body { padding: 18px; }
+  .section-label { text-align: center; font-size: 12px; }
+  .hall-name { text-align: center; font-size: 20px; font-weight: bold; color: #fff; margin-top: 4px; }
+  .info-title { text-align: center; font-size: 14px; font-weight: bold; margin-top: 16px; }
+  .info-card { border-radius: 8px; padding: 14px; margin-top: 8px; }
+  .info-row { display: flex; margin-top: 8px; }
+  .info-row:first-child { margin-top: 0; }
+  .info-row .label-col { flex: 1; font-size: 13px; }
+  .info-row .value-col { flex: 2; font-size: 13px; color: #fff; font-weight: bold; }
+  .section-bar { display: flex; border-radius: 8px; overflow: hidden; margin-top: 6px; }
+  .section-bar .bar-indicator { width: 4px; min-height: 40px; }
+  .section-bar .bar-content { flex: 1; display: flex; justify-content: space-between; align-items: center; padding: 12px; font-size: 13px; color: #fff; font-weight: bold; }
+  .cta-button { display: block; width: 100%; margin-top: 16px; padding: 12px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; color: #fff; cursor: pointer; text-align: center; }
+  .footer-msg { padding: 15px; }
+  .footer-msg .sep { height: 1px; margin-bottom: 14px; }
+  .footer-msg p { font-size: 11px; text-align: center; line-height: 1.7; }
+  .badge { display: inline-block; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 4px; vertical-align: middle; margin-left: 4px; background: #f59e0b; color: #000; }
+
+  /* ===== A：パープル ===== */
+  .theme-purple .header-outer { background: #3b1764; }
+  .theme-purple .header-inner { background: #8b5cf6; }
+  .theme-purple .body { background: #110a20; }
+  .theme-purple .section-label { color: #a78bfa; }
+  .theme-purple .info-title { color: #c4b5fd; }
+  .theme-purple .info-card { background: #1e1538; }
+  .theme-purple .info-row .label-col { color: #8878a8; }
+  .theme-purple .cta-button { background: #8b5cf6; }
+  .theme-purple .footer-msg { background: #3b1764; }
+  .theme-purple .footer-msg .sep { background: #5b3a94; }
+  .theme-purple .footer-msg p { color: #ddd6fe; }
+
+  /* ===== B：ホットピンク ===== */
+  .theme-pink .header-outer { background: #701a3e; }
+  .theme-pink .header-inner { background: #ec4899; }
+  .theme-pink .body { background: #1a0812; }
+  .theme-pink .section-label { color: #f472b6; }
+  .theme-pink .info-title { color: #fbcfe8; }
+  .theme-pink .info-card { background: #2e1020; }
+  .theme-pink .info-row .label-col { color: #b06088; }
+  .theme-pink .cta-button { background: #ec4899; }
+  .theme-pink .footer-msg { background: #701a3e; }
+  .theme-pink .footer-msg .sep { background: #9d174d; }
+  .theme-pink .footer-msg p { color: #fce7f3; }
+
+  /* ===== C：マゼンタ ===== */
+  .theme-magenta .header-outer { background: #4a1042; }
+  .theme-magenta .header-inner { background: #d946ef; }
+  .theme-magenta .body { background: #180a18; }
+  .theme-magenta .section-label { color: #e879f9; }
+  .theme-magenta .info-title { color: #f0abfc; }
+  .theme-magenta .info-card { background: #2a1230; }
+  .theme-magenta .info-row .label-col { color: #a06098; }
+  .theme-magenta .cta-button { background: #d946ef; }
+  .theme-magenta .footer-msg { background: #4a1042; }
+  .theme-magenta .footer-msg .sep { background: #701a75; }
+  .theme-magenta .footer-msg p { color: #f5d0fe; }
+
+  /* ===== D：ローズ（濃いめピンク赤）===== */
+  .theme-rose .header-outer { background: #6b1030; }
+  .theme-rose .header-inner { background: #f43f5e; }
+  .theme-rose .body { background: #1a080c; }
+  .theme-rose .section-label { color: #fb7185; }
+  .theme-rose .info-title { color: #fecdd3; }
+  .theme-rose .info-card { background: #2e1018; }
+  .theme-rose .info-row .label-col { color: #b06070; }
+  .theme-rose .cta-button { background: #f43f5e; }
+  .theme-rose .footer-msg { background: #6b1030; }
+  .theme-rose .footer-msg .sep { background: #9f1239; }
+  .theme-rose .footer-msg p { color: #ffe4e6; }
+</style>
+</head>
+<body>
+  <div class="page-title">🚨 再通知用カラー候補</div>
+  <div class="page-desc">既存で使用中の色を避けた、目立つ色のバリエーション</div>
+  <div class="used-colors">
+    <div class="used-chip"><div class="dot" style="background:#10b981;"></div>舞台(緑) 使用中</div>
+    <div class="used-chip"><div class="dot" style="background:#0ea5e9;"></div>音響(青) 使用中</div>
+    <div class="used-chip"><div class="dot" style="background:#eab308;"></div>照明(黄) 使用中</div>
+    <div class="used-chip"><div class="dot" style="background:#ef4444;"></div>複数(赤) 使用中</div>
+    <div class="used-chip"><div class="dot" style="background:#e67e22;"></div>管理者(橙) 使用中</div>
+  </div>
+
+  <div class="compare-container">
+
+    <!-- A：パープル -->
+    <div class="compare-item">
+      <div class="label">A：パープル <span class="badge">推奨</span></div>
+      <div class="label-sub">#8b5cf6 ― 高級感・目立つ</div>
+      <div class="bubble theme-purple">
+        <div class="header-outer"><div class="header-inner"><div class="title">🚨 増員募集再通知 🚨</div></div></div>
+        <div class="body">
+          <div class="section-label">音響増員</div>
+          <div class="hall-name">○○○ホール</div>
+          <div class="info-title">催事情報</div>
+          <div class="info-card">
+            <div class="info-row"><div class="label-col">催事名</div><div class="value-col">サンプル催事</div></div>
+            <div class="info-row"><div class="label-col">日程/区分</div><div class="value-col">4月22日(水) 午前</div></div>
+            <div class="info-row"><div class="label-col">若手</div><div class="value-col">🔰 OK</div></div>
+          </div>
+          <div class="info-title">募集セクション</div>
+          <div class="section-bar"><div class="bar-indicator" style="background:#0ea5e9;"></div><div class="bar-content" style="background:#0a1a28;"><span>音響</span><span>2名</span></div></div>
+          <button class="cta-button">🔍 詳細確認＆応募はこちらから</button>
+        </div>
+        <div class="footer-msg">
+          <div class="sep"></div>
+          <p>増員がまだ見つかってません。</p>
+          <p>ご協力よろしくお願いいたします。🙏</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- B：ホットピンク -->
+    <div class="compare-item">
+      <div class="label">B：ホットピンク</div>
+      <div class="label-sub">#ec4899 ― 華やか・注意喚起</div>
+      <div class="bubble theme-pink">
+        <div class="header-outer"><div class="header-inner"><div class="title">🚨 増員募集再通知 🚨</div></div></div>
+        <div class="body">
+          <div class="section-label">音響増員</div>
+          <div class="hall-name">○○○ホール</div>
+          <div class="info-title">催事情報</div>
+          <div class="info-card">
+            <div class="info-row"><div class="label-col">催事名</div><div class="value-col">サンプル催事</div></div>
+            <div class="info-row"><div class="label-col">日程/区分</div><div class="value-col">4月22日(水) 午前</div></div>
+            <div class="info-row"><div class="label-col">若手</div><div class="value-col">🔰 OK</div></div>
+          </div>
+          <div class="info-title">募集セクション</div>
+          <div class="section-bar"><div class="bar-indicator" style="background:#0ea5e9;"></div><div class="bar-content" style="background:#0a1a28;"><span>音響</span><span>2名</span></div></div>
+          <button class="cta-button">🔍 詳細確認＆応募はこちらから</button>
+        </div>
+        <div class="footer-msg">
+          <div class="sep"></div>
+          <p>増員がまだ見つかってません。</p>
+          <p>ご協力よろしくお願いいたします。🙏</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- C：マゼンタ -->
+    <div class="compare-item">
+      <div class="label">C：マゼンタ</div>
+      <div class="label-sub">#d946ef ― 派手・インパクト大</div>
+      <div class="bubble theme-magenta">
+        <div class="header-outer"><div class="header-inner"><div class="title">🚨 増員募集再通知 🚨</div></div></div>
+        <div class="body">
+          <div class="section-label">音響増員</div>
+          <div class="hall-name">○○○ホール</div>
+          <div class="info-title">催事情報</div>
+          <div class="info-card">
+            <div class="info-row"><div class="label-col">催事名</div><div class="value-col">サンプル催事</div></div>
+            <div class="info-row"><div class="label-col">日程/区分</div><div class="value-col">4月22日(水) 午前</div></div>
+            <div class="info-row"><div class="label-col">若手</div><div class="value-col">🔰 OK</div></div>
+          </div>
+          <div class="info-title">募集セクション</div>
+          <div class="section-bar"><div class="bar-indicator" style="background:#0ea5e9;"></div><div class="bar-content" style="background:#0a1a28;"><span>音響</span><span>2名</span></div></div>
+          <button class="cta-button">🔍 詳細確認＆応募はこちらから</button>
+        </div>
+        <div class="footer-msg">
+          <div class="sep"></div>
+          <p>増員がまだ見つかってません。</p>
+          <p>ご協力よろしくお願いいたします。🙏</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- D：ローズ -->
+    <div class="compare-item">
+      <div class="label">D：ローズ</div>
+      <div class="label-sub">#f43f5e ― 警告感・赤寄り</div>
+      <div class="bubble theme-rose">
+        <div class="header-outer"><div class="header-inner"><div class="title">🚨 増員募集再通知 🚨</div></div></div>
+        <div class="body">
+          <div class="section-label">音響増員</div>
+          <div class="hall-name">○○○ホール</div>
+          <div class="info-title">催事情報</div>
+          <div class="info-card">
+            <div class="info-row"><div class="label-col">催事名</div><div class="value-col">サンプル催事</div></div>
+            <div class="info-row"><div class="label-col">日程/区分</div><div class="value-col">4月22日(水) 午前</div></div>
+            <div class="info-row"><div class="label-col">若手</div><div class="value-col">🔰 OK</div></div>
+          </div>
+          <div class="info-title">募集セクション</div>
+          <div class="section-bar"><div class="bar-indicator" style="background:#0ea5e9;"></div><div class="bar-content" style="background:#0a1a28;"><span>音響</span><span>2名</span></div></div>
+          <button class="cta-button">🔍 詳細確認＆応募はこちらから</button>
+        </div>
+        <div class="footer-msg">
+          <div class="sep"></div>
+          <p>増員がまだ見つかってません。</p>
+          <p>ご協力よろしくお願いいたします。🙏</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

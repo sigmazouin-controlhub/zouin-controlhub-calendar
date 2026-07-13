@@ -50,68 +50,149 @@
             </h1>
             <span class="version-badge">2.0</span>
         </div>
+        <div class="header-actions">
+            <div class="header-user">
+                <span class="header-user-name" id="headerUserName"></span>
+                <span class="header-user-role" id="headerUserRole">スタッフ</span>
+            </div>
+        </div>
     </header>
 
     <!-- メインコンテンツ（ログイン後に表示） -->
     <main class="main-content app-content hidden" id="appMain">
-        <!-- 凡例 -->
-        <div class="legend">
-            <div class="legend-item">
-                <span class="legend-dot stage"></span>
-                <span>舞台</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot sound"></span>
-                <span>音響</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot lighting"></span>
-                <span>照明</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot multiple"></span>
-                <span>複数</span>
-            </div>
-        </div>
 
-        <!-- カレンダーグリッド -->
-        <div class="calendar-container">
-            <!-- カレンダーヘッダー（年月＋ナビ） -->
-            <div class="calendar-top">
-                <div class="calendar-title-area">
-                    <h2 class="current-month" id="currentMonth">2026年 1月</h2>
-                    <button class="today-btn" id="todayBtn">今日</button>
-                </div>
-                <div class="nav-buttons">
-                    <button class="nav-btn prev-btn" id="prevMonth" aria-label="前月">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </button>
-                    <button class="nav-btn next-btn" id="nextMonth" aria-label="翌月">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </button>
+        <!-- ========== タブ: カレンダー ========== -->
+        <div class="tab-content active" id="tabCalendar">
+            <!-- セクションタイトル + 凡例 -->
+            <div class="tab-section-header">
+                <h2 class="tab-section-title">📅 カレンダー</h2>
+                <div class="legend">
+                    <div class="legend-item"><span class="legend-dot stage"></span><span>舞台</span></div>
+                    <div class="legend-item"><span class="legend-dot sound"></span><span>音響</span></div>
+                    <div class="legend-item"><span class="legend-dot lighting"></span><span>照明</span></div>
+                    <div class="legend-item"><span class="legend-dot multiple"></span><span>複数</span></div>
                 </div>
             </div>
 
-            <div class="calendar-header">
-                <div class="weekday sun">日</div>
-                <div class="weekday">月</div>
-                <div class="weekday">火</div>
-                <div class="weekday">水</div>
-                <div class="weekday">木</div>
-                <div class="weekday">金</div>
-                <div class="weekday sat">土</div>
+            <!-- カレンダーグリッド -->
+            <div class="calendar-container">
+                <div class="calendar-top">
+                    <div class="calendar-title-area">
+                        <h2 class="current-month" id="currentMonth">2026年 1月</h2>
+                        <button class="today-btn" id="todayBtn">今日</button>
+                        <div class="nav-buttons">
+                            <button class="nav-btn prev-btn" id="prevMonth" aria-label="前月">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                            <button class="nav-btn next-btn" id="nextMonth" aria-label="翌月">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active">月</button>
+                        <button class="view-toggle-btn" disabled>週</button>
+                        <button class="view-toggle-btn" disabled>一覧</button>
+                    </div>
+                </div>
+
+                <div class="calendar-header">
+                    <div class="weekday sun">日</div>
+                    <div class="weekday">月</div>
+                    <div class="weekday">火</div>
+                    <div class="weekday">水</div>
+                    <div class="weekday">木</div>
+                    <div class="weekday">金</div>
+                    <div class="weekday sat">土</div>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
             </div>
-            <div class="calendar-grid" id="calendarGrid">
-                <!-- カレンダー日付がJSで挿入される -->
+
+            <!-- 今後の増員募集セクション -->
+            <div class="upcoming-section">
+                <div class="upcoming-section-header">
+                    <h3 class="upcoming-section-title" id="upcomingSectionTitle">
+                        今後の増員募集
+                    </h3>
+                    <button class="upcoming-see-all" onclick="document.querySelector('.tab-btn[data-tab=tabRecruitment]').click()">
+                        すべて見る →
+                    </button>
+                </div>
+                <div id="upcomingEventsContainer" class="upcoming-events-container">
+                    <div class="upcoming-empty">読み込み中...</div>
+                </div>
             </div>
         </div>
+
+        <!-- ========== タブ: ホール情報 ========== -->
+        <div class="tab-content" id="tabHallInfo">
+            <div class="tab-section-header">
+                <h2 class="tab-section-title">🏛 ホール情報</h2>
+            </div>
+            <div id="hallInfoContent">
+                <div class="tab-loading"><div class="tab-spinner"></div><p>読み込み中...</p></div>
+            </div>
+        </div>
+
+        <!-- ========== タブ: 増員募集 ========== -->
+        <div class="tab-content" id="tabRecruitment">
+            <div class="tab-section-header">
+                <h2 class="tab-section-title">👥 増員募集</h2>
+            </div>
+            <div id="recruitmentContent">
+                <div class="tab-loading"><div class="tab-spinner"></div><p>読み込み中...</p></div>
+            </div>
+        </div>
+
+        <!-- ========== タブ: 増員完了報告 ========== -->
+        <div class="tab-content" id="tabReport">
+            <div class="tab-section-header">
+                <h2 class="tab-section-title">📋 増員完了報告</h2>
+            </div>
+            <div class="report-content">
+                <div class="report-icon">📋</div>
+                <h3>増員完了報告フォーム</h3>
+                <p>増員が完了したら、下のボタンから報告してください。</p>
+                <a href="" target="_blank" class="report-link-btn" id="reportLinkBtn">
+                    報告フォームを開く →
+                </a>
+                <p class="report-note" id="reportNote">※ 報告フォームのURLが未設定です。管理者に連絡してください。</p>
+            </div>
+        </div>
+
+        <!-- ========== タブ: マイページ ========== -->
+        <div class="tab-content" id="tabMyPage">
+            <div class="tab-section-header">
+                <h2 class="tab-section-title">👤 マイページ</h2>
+            </div>
+            <div id="myPageContent"></div>
+        </div>
+
     </main>
+
+    <!-- ボトムタブナビゲーション -->
+    <nav class="bottom-tab-nav app-content hidden" id="bottomTabNav">
+        <button class="tab-btn active" data-tab="tabCalendar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>カレンダー</span>
+        </button>
+        <button class="tab-btn" data-tab="tabHallInfo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+            <span>ホール情報</span>
+        </button>
+        <button class="tab-btn" data-tab="tabRecruitment">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>増員募集</span>
+        </button>
+        <button class="tab-btn" data-tab="tabReport">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>増員完了報告</span>
+        </button>
+        <button class="tab-btn" data-tab="tabMyPage">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>マイページ</span>
+        </button>
+    </nav>
 
     <!-- イベント選択モーダル -->
     <div class="event-modal-overlay" id="eventModalOverlay"></div>
@@ -228,8 +309,9 @@
 
 
 
-    <script src="js/calendar.js?v=8"></script>
-    <script src="js/drawer.js?v=8"></script>
+    <script src="js/calendar.js?v=9"></script>
+    <script src="js/drawer.js?v=9"></script>
+    <script src="js/tabs.js?v=1"></script>
     <script>
         // スタッフ認証処理
         (function () {
@@ -287,11 +369,15 @@
                         // localStorageにも保存
                         localStorage.setItem('zouin_staff_hall', result.staffHall || '');
                         localStorage.setItem('zouin_staff_section', result.staffSection || '');
+                        localStorage.setItem('zouin_staff_preferred_area', result.preferredArea || '');
 
                         // 管理者フラグを保存
                         localStorage.setItem('zouin_is_admin', result.isAdmin ? 'true' : 'false');
                         window.isAdmin = !!result.isAdmin;
                         console.log('管理者:', result.isAdmin);
+
+                        // ヘッダーのユーザー情報を更新
+                        if (window._tabsUpdateHeader) window._tabsUpdateHeader();
                     }
                 } catch (error) {
                     console.error('所属情報取得エラー:', error);

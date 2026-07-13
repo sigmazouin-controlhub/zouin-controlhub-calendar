@@ -1345,3 +1345,787 @@ body {
     color: rgba(99, 179, 237, 0.7);
     font-size: 0.7rem;
 }
+
+/* ====================================
+   ボトムタブナビゲーション
+   ==================================== */
+.bottom-tab-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 6px 0;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    z-index: 100;
+    height: auto;
+    min-height: 60px;
+}
+
+.bottom-tab-nav.hidden {
+    display: none !important;
+}
+
+.tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    font-family: var(--font-family);
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: color var(--transition-fast);
+    flex: 1;
+    min-width: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tab-btn svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.tab-btn span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.tab-btn.active {
+    color: var(--accent-primary);
+}
+
+.tab-btn.active svg {
+    filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.4));
+}
+
+/* タブコンテンツ */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* mainにタブバー分の余白 */
+.main-content {
+    padding-bottom: 80px !important;
+}
+
+/* ====================================
+   ヘッダー強化（ユーザープロフィール）
+   ==================================== */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.header-user {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+}
+
+.header-user-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.header-user-role {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+}
+
+.header-user-role.admin {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+}
+
+/* ====================================
+   タブセクションヘッダー
+   ==================================== */
+.tab-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.tab-section-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* 凡例を右寄せ */
+.tab-section-header .legend {
+    margin: 0;
+    padding: 0;
+}
+
+/* ====================================
+   月/週/一覧 トグル
+   ==================================== */
+.calendar-top {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.view-toggle {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.view-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    padding: 4px 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border-right: 1px solid var(--border-color);
+}
+
+.view-toggle-btn:last-child {
+    border-right: none;
+}
+
+.view-toggle-btn.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.view-toggle-btn:disabled:not(.active) {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* ====================================
+   今後の増員募集セクション
+   ==================================== */
+.upcoming-section {
+    margin-top: var(--spacing-xl);
+    border-top: 1px solid var(--border-color);
+    padding-top: var(--spacing-lg);
+}
+
+.upcoming-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.upcoming-section-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.upcoming-see-all {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast);
+}
+
+.upcoming-see-all:hover {
+    color: var(--accent-primary);
+}
+
+.upcoming-events-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.upcoming-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.upcoming-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.upcoming-card-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+    padding-right: var(--spacing-md);
+    border-right: 1px solid var(--border-color);
+}
+
+.upcoming-date-month {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.upcoming-date-day {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.upcoming-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.upcoming-card-hall {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.upcoming-card-event {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.upcoming-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.upcoming-card-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.badge-recruiting {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.badge-days {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.upcoming-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--spacing-xl);
+    font-size: var(--font-size-sm);
+}
+
+/* ====================================
+   ホール情報タブ
+   ==================================== */
+.hall-list-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.hall-list-header h3 {
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.hall-list-count {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.hall-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.hall-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.hall-card:hover {
+    border-color: var(--hall-color, var(--accent-primary));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.hall-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin: 0 auto var(--spacing-sm);
+}
+
+.hall-card-name {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    word-break: break-all;
+}
+
+.hall-card-address {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ホール詳細 */
+.hall-back-btn {
+    background: none;
+    border: none;
+    color: var(--accent-primary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    cursor: pointer;
+    padding: var(--spacing-sm) 0;
+    margin-bottom: var(--spacing-md);
+    display: block;
+}
+
+.hall-back-btn:hover {
+    text-decoration: underline;
+}
+
+.hall-detail-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.hall-detail-header h3 {
+    font-size: var(--font-size-xl);
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.hall-detail-header p {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.hall-category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.hall-category-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.hall-category-card:hover {
+    border-color: var(--cat-color, var(--accent-primary));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.hall-category-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin: 0 auto var(--spacing-sm);
+}
+
+.hall-category-label {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.hall-category-desc {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ホール情報詳細セクション */
+.hall-info-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.hall-info-section h4 {
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md);
+}
+
+.hall-info-block {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.hall-info-block:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.hall-info-label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--accent-primary);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.hall-info-block p {
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    margin: 0;
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.hall-no-data {
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    text-align: center;
+    padding: var(--spacing-xl);
+}
+
+.hall-entry-image {
+    text-align: center;
+}
+
+.hall-entry-image img {
+    max-width: 100%;
+    border-radius: var(--radius-md);
+}
+
+.hall-action-btns {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.hall-action-btn {
+    display: block;
+    text-align: center;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity var(--transition-fast);
+}
+
+.hall-action-btn:hover {
+    opacity: 0.85;
+}
+
+.hall-action-btn.phone {
+    background: #2e86c1;
+    color: white;
+}
+
+.hall-action-btn.maps {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.hall-maps-btn {
+    display: block;
+    text-align: center;
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    text-decoration: none;
+    font-size: var(--font-size-base);
+    transition: opacity var(--transition-fast);
+}
+
+.hall-maps-btn:hover {
+    opacity: 0.85;
+}
+
+/* ====================================
+   増員募集タブ
+   ==================================== */
+.recruitment-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.recruitment-header h3 {
+    font-size: var(--font-size-lg);
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.recruitment-count {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.recruitment-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+/* ====================================
+   増員完了報告タブ
+   ==================================== */
+.report-content {
+    text-align: center;
+    padding: var(--spacing-xl) var(--spacing-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+}
+
+.report-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.report-content h3 {
+    font-size: var(--font-size-xl);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm);
+}
+
+.report-content p {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin: 0 0 var(--spacing-lg);
+}
+
+.report-link-btn {
+    display: inline-block;
+    background: var(--accent-gradient);
+    color: white;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.report-link-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(96, 165, 250, 0.3);
+}
+
+.report-note {
+    font-size: 0.7rem !important;
+    color: var(--text-muted) !important;
+    margin-top: var(--spacing-md) !important;
+}
+
+/* ====================================
+   マイページタブ
+   ==================================== */
+.mypage-header {
+    text-align: center;
+    padding: var(--spacing-xl) 0;
+}
+
+.mypage-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--spacing-md);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+}
+
+.mypage-name {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm);
+}
+
+.mypage-admin-badge {
+    display: inline-block;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    padding: 3px 12px;
+    border-radius: var(--radius-full);
+}
+
+.mypage-info-list {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--spacing-xl);
+}
+
+.mypage-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.mypage-info-item:last-child {
+    border-bottom: none;
+}
+
+.mypage-info-label {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.mypage-info-value {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.mypage-logout-btn {
+    width: 100%;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #f87171;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    font-family: var(--font-family);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.mypage-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* ====================================
+   タブ共通ローディング / 空状態
+   ==================================== */
+.tab-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl) * 2;
+    color: var(--text-secondary);
+    gap: var(--spacing-md);
+    min-height: 200px;
+}
+
+.tab-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.tab-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--spacing-xl) * 2;
+    font-size: var(--font-size-sm);
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

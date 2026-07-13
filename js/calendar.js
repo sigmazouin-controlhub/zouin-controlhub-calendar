@@ -352,6 +352,7 @@ async function fetchEventsFromAPI() {
         if (data.success && data.events) {
             eventsData = transformApiEvents(data.events);
             console.log('イベント取得成功:', data.totalCount, '件');
+            publishEventsToTabs();
             isLoading = false;
             return;
         } else {
@@ -380,6 +381,7 @@ async function fetchEventsFromAPI() {
                 if (data.success && data.events) {
                     eventsData = transformApiEvents(data.events);
                     console.log('イベント取得成功（JSONP）:', data.totalCount, '件');
+                    publishEventsToTabs();
                 } else {
                     console.error('API エラー:', data.error);
                     eventsData = {};
@@ -526,6 +528,39 @@ function transformApiEvents(apiEvents) {
     return transformed;
 }
 
+/**
+ * eventsData をフラットリストに変換して window.calendarEvents に公開
+ * tabs.js の「今後の増員募集」セクション更新を呼び出す
+ */
+function publishEventsToTabs() {
+    const flat = [];
+    const seen = new Set();
+    for (const dateStr in eventsData) {
+        eventsData[dateStr].forEach(ev => {
+            if (!seen.has(ev.id)) {
+                seen.add(ev.id);
+                flat.push({
+                    id: ev.id,
+                    title: ev.title,
+                    hall: ev.hall,
+                    eventName: ev.eventName,
+                    start: ev.startDate,
+                    end: ev.endDate,
+                    section: ev.section,
+                    timeSlot: timeSlots[ev.timeSlot] || ev.timeSlot || '',
+                    sections: ev.parsedSections,
+                    juniorOk: ev.juniorOk
+                });
+            }
+        });
+    }
+    window.calendarEvents = flat;
+    // tabs.js のコールバックを呼ぶ
+    if (typeof window._tabsRenderUpcoming === 'function') {
+        window._tabsRenderUpcoming();
+    }
+}
+
 // ============================================
 // descriptionから募集セクション情報をパース
 // ============================================
@@ -602,6 +637,7 @@ window.calendarApp = {
     sectionInfo,
     timeSlots,
     formatDateJP,
+    eventsData: eventsData,
     API_CONFIG: API_CONFIG,
     refreshCalendar: async () => {
         await fetchEventsFromAPI();
