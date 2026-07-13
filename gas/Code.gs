@@ -761,11 +761,20 @@ function getStaffInfoFromMainSheet(email) {
     
     var lastRow = sheet.getLastRow();
     if (lastRow < 2) return { success: true, found: false };
-    var data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    var data = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
     
     for (var i = 0; i < data.length; i++) {
       if (normalizeName(data[i][5]) === normalizedEmail) {
-        return { success: true, found: true, staffName: data[i][1] || '', staffHall: data[i][3] || '', staffSection: data[i][4] || '', isAdmin: data[i][8] === true || data[i][8] === 'TRUE' };
+        return {
+          success: true,
+          found: true,
+          staffName: data[i][1] || '',
+          staffHall: data[i][3] || '',
+          staffSection: data[i][4] || '',
+          preferredArea: data[i][6] || '',
+          isAdmin: data[i][8] === true || data[i][8] === 'TRUE',
+          isSystemAdmin: data[i][9] === true || data[i][9] === 'TRUE'
+        };
       }
     }
     return { success: true, found: false };

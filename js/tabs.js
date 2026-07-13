@@ -12,7 +12,7 @@
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwqeiRNp7oueT0NZqxNrn5n4OONm6Y-NUaNhXEIAS5QrR8boqQzG7fdc0VQ_n_sPZ6_/exec';
 
     // 増員完了報告のリンクURL（ここを変更してください）
-    const REPORT_URL = 'https://forms.office.com/r/hP4sUDWgvr';
+    const REPORT_URL = '';
 
     // ============================================
     // タブ切り替え
@@ -58,12 +58,21 @@
         if (!nameEl) return;
 
         const name = window.loggedInStaffName || localStorage.getItem('zouin_staff_display_name') || '';
+        const isSystemAdmin = window.isSystemAdmin || localStorage.getItem('zouin_is_system_admin') === 'true';
         const isAdmin = window.isAdmin || localStorage.getItem('zouin_is_admin') === 'true';
 
         nameEl.textContent = name;
         if (roleEl) {
-            roleEl.textContent = isAdmin ? 'システム管理者' : 'スタッフ';
-            roleEl.className = 'header-user-role' + (isAdmin ? ' admin' : '');
+            if (isSystemAdmin) {
+                roleEl.textContent = 'システム管理者';
+                roleEl.className = 'header-user-role system-admin';
+            } else if (isAdmin) {
+                roleEl.textContent = '管理者';
+                roleEl.className = 'header-user-role admin';
+            } else {
+                roleEl.textContent = 'スタッフ';
+                roleEl.className = 'header-user-role';
+            }
         }
     }
 
@@ -101,7 +110,7 @@
 
         if (sectionTitle) {
             sectionTitle.innerHTML = `<span class="legend-dot ${sectionDot}" style="margin-right:6px;"></span>
-                <strong>${sectionLabel}</strong>（あなたのセクション）の今後の増員募集`;
+                <strong>${sectionLabel}</strong> の今後の増員募集`;
         }
 
         // calendar.js のイベントデータを利用

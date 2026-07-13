@@ -373,8 +373,10 @@
 
                         // 管理者フラグを保存
                         localStorage.setItem('zouin_is_admin', result.isAdmin ? 'true' : 'false');
+                        localStorage.setItem('zouin_is_system_admin', result.isSystemAdmin ? 'true' : 'false');
                         window.isAdmin = !!result.isAdmin;
-                        console.log('管理者:', result.isAdmin);
+                        window.isSystemAdmin = !!result.isSystemAdmin;
+                        console.log('管理者:', result.isAdmin, 'システム管理者:', result.isSystemAdmin);
 
                         // ヘッダーのユーザー情報を更新
                         if (window._tabsUpdateHeader) window._tabsUpdateHeader();
