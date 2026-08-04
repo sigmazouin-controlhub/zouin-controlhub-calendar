@@ -2133,4 +2133,337 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* ====================================
+   キープ（お気に入り）ボタン
+   ==================================== */
+.keep-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    z-index: 5;
+    line-height: 1;
+    padding: 0;
+    color: var(--text-muted);
+}
+
+.keep-btn:hover {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.3);
+    transform: scale(1.15);
+}
+
+.keep-btn.active {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.35);
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.upcoming-card {
+    position: relative;
+}
+
+/* ====================================
+   フィルタセグメントコントロール
+   ==================================== */
+.filter-segment {
+    display: flex;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 3px;
+    margin-bottom: var(--spacing-lg);
+    gap: 2px;
+}
+
+.filter-segment-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    font-family: var(--font-family);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.filter-segment-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.filter-segment-btn.active {
+    background: var(--accent-primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(96, 165, 250, 0.3);
+}
+
+.filter-segment-btn .filter-count {
+    font-size: 0.65rem;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    min-width: 18px;
+    text-align: center;
+}
+
+.filter-segment-btn.active .filter-count {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ====================================
+   申込履歴セクション（マイページ）
+   ==================================== */
+.mypage-section-title {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.application-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl);
+}
+
+.application-history-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    transition: border-color var(--transition-fast);
+}
+
+.application-history-item:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.application-history-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 44px;
+    padding-right: var(--spacing-md);
+    border-right: 1px solid var(--border-color);
+}
+
+.application-history-date .date-num {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.application-history-date .date-wd {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.application-history-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.application-history-hall {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.application-history-event {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.application-status-badge {
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+}
+
+.application-status-badge.status-pending {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+.application-status-badge.status-confirmed {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
+.application-status-badge.status-cancelled {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.application-history-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xl);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* ====================================
+   ホール情報 - 検索バー
+   ==================================== */
+.hall-search-bar {
+    position: relative;
+    margin-bottom: var(--spacing-lg);
+}
+
+.hall-search-bar input {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 10px 14px 10px 38px;
+    font-size: var(--font-size-base);
+    font-family: var(--font-family);
+    color: var(--text-primary);
+    transition: border-color var(--transition-fast);
+}
+
+.hall-search-bar input::placeholder {
+    color: var(--text-muted);
+}
+
+.hall-search-bar input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.hall-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+/* ====================================
+   ホール情報 - アコーディオン
+   ==================================== */
+.hall-area-group {
+    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.hall-area-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-secondary);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    user-select: none;
+    -webkit-user-select: none;
+    border-bottom: 1px solid transparent;
+}
+
+.hall-area-header:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.hall-area-header.open {
+    border-bottom-color: var(--border-color);
+}
+
+.hall-area-title {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.hall-area-count {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.hall-area-chevron {
+    color: var(--text-muted);
+    transition: transform var(--transition-base);
+    font-size: 0.8rem;
+}
+
+.hall-area-header.open .hall-area-chevron {
+    transform: rotate(180deg);
+}
+
+.hall-area-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hall-area-body.open {
+    max-height: 2000px;
+}
+
+.hall-area-body-inner {
+    padding: var(--spacing-md);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.hall-search-no-result {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xl);
 }

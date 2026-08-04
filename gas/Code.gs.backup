@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 増員 CONTROL HUB 2.0 - Google Apps Script
  * フォーム → カレンダー → Web App API連携
  */
@@ -44,9 +44,10 @@ const STAFF_COL = {
   SECTION: 4,         // E列: セクション
   EMAIL: 5,           // F列: メール
   PREFERRED_AREA: 6,  // G列: 希望エリア
-  LINE_UID: 7,        // H列: LINE UID（フォーム最終質問として追加）
-  IS_ADMIN: 8,        // I列: 管理者権限（手動設定）
-  IS_SYSTEM_ADMIN: 9  // J列: システム管理者（手動設定）
+  // H列: (予備)
+  IS_ADMIN: 8,        // I列: 管理者権限
+  IS_SYSTEM_ADMIN: 9, // J列: システム管理者
+  LINE_UID: 10        // K列: LINE UID（新規追加）
 };
 
 // ============================================
@@ -309,9 +310,10 @@ function doGet(e) {
     }
     
     if (params.action === 'verifyStaff') return createResponse(verifyStaff(params.name), e);
-    if (params.action === 'verifyLineUid') return createResponse(verifyLineUid(params.lineUid), e);
-    if (params.action === 'getStaffFormUrl') return createResponse(getStaffFormUrl(params), e);
     if (params.action === 'saveLineUid') return createResponse(handleSaveLineUid(params), e);
+    if (params.action === 'verifyLineUid') return createResponse(verifyLineUid(params.lineUid), e);
+    if (params.action === 'registerLineStaff') return createResponse(registerLineStaff(params), e);
+    if (params.action === 'linkLineToEmail') return createResponse(linkLineToEmail(params), e);
     if (params.action === 'submitApplication') return createResponse(handleSubmitApplication(params), e);
     if (params.action === 'getStaffProfile') return createResponse(getStaffProfile(params.email), e);
     if (params.action === 'getStaffInfo') return createResponse(getStaffInfoFromMainSheet(params.email), e);
@@ -433,148 +435,6 @@ function normalizeName(name) {
   return name.trim().replace(/　/g, '').replace(/\s+/g, '').toLowerCase().normalize('NFKC');
 }
 
-/**
- * GoogleフォームのエントリIDを動的に取得し、pre-fill URLを生成
- * LIFFから呼び出され、LINE UIDと表示名をフォームに自動入力
- * @param {object} params - { lineUid, displayName }
- * @return {object} { success, formUrl }
- */
-function getStaffFormUrl(params) {
-  try {
-    var lineUid = (params.lineUid || '').toString();
-    var displayName = (params.displayName || '').toString();
-    
-    var form = FormApp.openById(STAFF_FORM_ID);
-    var items = form.getItems();
-    var uidEntryId = '';
-    var displayNameEntryId = '';
-    
-    for (var i = 0; i < items.length; i++) {
-      var title = items[i].getTitle();
-      if (title === 'LINE UID') {
-        uidEntryId = 'entry.' + items[i].getId();
-      } else if (title.indexOf('LINE') >= 0 && title.indexOf('表示名') >= 0) {
-        displayNameEntryId = 'entry.' + items[i].getId();
-      }
-    }
-    
-    var formUrl = form.getPublishedUrl();
-    var urlParams = [];
-    if (uidEntryId && lineUid) urlParams.push(uidEntryId + '=' + encodeURIComponent(lineUid));
-    if (displayNameEntryId && displayName) urlParams.push(displayNameEntryId + '=' + encodeURIComponent(displayName));
-    
-    if (urlParams.length > 0) {
-      formUrl += '?' + urlParams.join('&');
-    }
-    
-    return { success: true, formUrl: formUrl };
-  } catch (error) {
-    Logger.log('getStaffFormUrl エラー: ' + error.toString());
-    return { success: false, error: error.toString() };
-  }
-}
-
-/**
- * LIFFからLINE UIDを受け取り、スプレッドシートのH列に直接書き込む
- * C列(LINE表示名)またはB列(名前)で照合し、一致する行にUIDを保存
- * 既存行が見つからない場合はPropertiesServiceにキャッシュし、
- * 次回フォーム送信時にonFormSubmitUidで書き込む
- */
-function handleSaveLineUid(params) {
-  try {
-    var lineUid = (params.lineUid || '').toString().trim();
-    var displayName = (params.displayName || '').toString().trim();
-    
-    if (!lineUid) {
-      return { success: false, error: 'LINE UIDが空です' };
-    }
-    
-    var ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
-    var sheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
-    if (!sheet) {
-      return { success: false, error: 'スタッフシートが見つかりません' };
-    }
-    
-    var lastRow = sheet.getLastRow();
-    if (lastRow < 2) {
-      // シートにデータなし → キャッシュのみ
-      cacheLineUid(displayName, lineUid);
-      return { success: true, cached: true, message: 'データなし。キャッシュに保存しました' };
-    }
-    
-    var lastCol = Math.max(sheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
-    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-    var normalizedDisplay = normalizeName(displayName);
-    var matched = false;
-    
-    for (var i = 0; i < data.length; i++) {
-      var sheetDisplayName = normalizeName(data[i][STAFF_COL.LINE_DISPLAY] || '');
-      var sheetName = normalizeName(data[i][STAFF_COL.NAME] || '');
-      var existingUid = (data[i][STAFF_COL.LINE_UID] || '').toString().trim();
-      
-      // C列(LINE表示名)またはB列(名前)で照合
-      if (normalizedDisplay && (sheetDisplayName === normalizedDisplay || sheetName === normalizedDisplay)) {
-        if (!existingUid || existingUid !== lineUid) {
-          sheet.getRange(i + 2, STAFF_COL.LINE_UID + 1).setValue(lineUid);
-          Logger.log('UID書き込み完了: 行' + (i + 2) + ' ' + displayName + ' → ' + lineUid);
-        }
-        matched = true;
-      }
-    }
-    
-    // キャッシュにも保存（新規フォーム送信時に使用）
-    cacheLineUid(displayName, lineUid);
-    
-    return { success: true, matched: matched, message: matched ? 'UID書き込み完了' : 'キャッシュに保存（フォーム送信後に反映）' };
-  } catch (error) {
-    Logger.log('handleSaveLineUid エラー: ' + error.toString());
-    return { success: false, error: error.toString() };
-  }
-}
-
-/** LINE表示名→UID のマッピングをキャッシュに保存 */
-function cacheLineUid(displayName, lineUid) {
-  try {
-    var props = PropertiesService.getScriptProperties();
-    var cache = JSON.parse(props.getProperty('lineUidCache') || '{}');
-    cache[normalizeName(displayName)] = lineUid;
-    props.setProperty('lineUidCache', JSON.stringify(cache));
-  } catch (e) {
-    Logger.log('キャッシュ保存エラー: ' + e.toString());
-  }
-}
-
-/**
- * フォーム送信時トリガー: 新規行のLINE表示名をキャッシュと照合し、UIDを書き込む
- * トリガー設定: スプレッドシート → フォーム送信時
- */
-function onFormSubmitUid(e) {
-  try {
-    if (!e || !e.range) return;
-    var row = e.range.getRow();
-    var sheet = e.range.getSheet();
-    if (sheet.getName() !== STAFF_CONFIG.SHEET_NAME) return;
-    
-    var lastCol = Math.max(sheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
-    var rowData = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
-    var displayName = (rowData[STAFF_COL.LINE_DISPLAY] || '').toString().trim();
-    var existingUid = (rowData[STAFF_COL.LINE_UID] || '').toString().trim();
-    
-    if (existingUid || !displayName) return; // 既にUIDあり or 表示名なし
-    
-    // キャッシュからUID検索
-    var props = PropertiesService.getScriptProperties();
-    var cache = JSON.parse(props.getProperty('lineUidCache') || '{}');
-    var uid = cache[normalizeName(displayName)];
-    
-    if (uid) {
-      sheet.getRange(row, STAFF_COL.LINE_UID + 1).setValue(uid);
-      Logger.log('onFormSubmitUid: UID書き込み完了 行' + row + ' ' + displayName + ' → ' + uid);
-    }
-  } catch (error) {
-    Logger.log('onFormSubmitUid エラー: ' + error.toString());
-  }
-}
 function verifyStaff(identifier) {
   try {
     const normalizedInput = normalizeName(identifier);
@@ -608,19 +468,53 @@ const LINE_CONFIG = {
 };
 
 // ============================================
+// LINE友だちUID一覧を取得してスプレッドシートに保存
+// ============================================
+function fetchLineFollowers() {
+  const url = 'https://api.line.me/v2/bot/followers/ids';
+  const options = { method: 'get', headers: { 'Authorization': 'Bearer ' + LINE_CONFIG.CHANNEL_ACCESS_TOKEN }, muteHttpExceptions: true };
+  let allUserIds = [];
+  let nextToken = null;
+  
+  do {
+    const requestUrl = nextToken ? url + '?start=' + nextToken : url;
+    const response = UrlFetchApp.fetch(requestUrl, options);
+    const result = JSON.parse(response.getContentText());
+    if (result.message) { Logger.log('APIエラー: ' + result.message); return []; }
+    if (result.userIds) allUserIds = allUserIds.concat(result.userIds);
+    nextToken = result.next;
+  } while (nextToken);
+  
+  saveFollowersToSheet(allUserIds);
+  return allUserIds;
+}
+
+function saveFollowersToSheet(userIds) {
+  const ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(LINE_CONFIG.ADMIN_SHEET_NAME);
+    sheet.getRange(1, 1, 1, 4).setValues([['LINE UID', '名前', '種別', '備考']]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight('bold');
+  }
+  const existingUids = sheet.getDataRange().getValues().slice(1).map(row => row[0]);
+  const newUids = userIds.filter(uid => !existingUids.includes(uid));
+  if (newUids.length > 0) {
+    const lastRow = sheet.getLastRow();
+    sheet.getRange(lastRow + 1, 1, newUids.length, 4).setValues(newUids.map(uid => [uid, '', '', '']));
+  }
+  return newUids.length;
+}
+
+// ============================================
 // LINE通知関連
 // ============================================
 function notifyAdmins(staffName, staffLineUid, eventInfo) {
   const ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
+  const sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
   if (!sheet) return;
   
-  var lastCol = Math.max(sheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
-  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, lastCol).getValues();
-  const adminUids = data
-    .filter(function(row) { return (row[STAFF_COL.IS_ADMIN] === true || row[STAFF_COL.IS_ADMIN] === 'TRUE') && row[STAFF_COL.LINE_UID]; })
-    .map(function(row) { return row[STAFF_COL.LINE_UID].toString().trim(); })
-    .filter(function(uid) { return uid.length > 0; });
+  const adminUids = sheet.getDataRange().getValues().slice(1).filter(row => row[2] === '管理者').map(row => row[0]);
   if (adminUids.length === 0) return;
   
   const message = createNotificationMessage(staffName, staffLineUid, eventInfo);
@@ -655,22 +549,148 @@ function sendMulticast(userIds, message) {
   return UrlFetchApp.fetch('https://api.line.me/v2/bot/message/multicast', options).getResponseCode() === 200;
 }
 
+// ============================================
+// LINE UID保存ハンドラ（LIFFから呼び出し）
+// ============================================
+function handleSaveLineUid(params) {
+  try {
+    const lineUid = params.lineUid;
+    const displayName = params.displayName || '';
+    const staffName = params.staffName || '';
+    if (!lineUid) return { success: false, error: 'LINE UIDが必要です' };
+    
+    const ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(LINE_CONFIG.ADMIN_SHEET_NAME);
+      sheet.getRange(1, 1, 1, 9).setValues([['LINE UID', 'LINE表示名', 'スタッフ名', 'メール', '登録日時', 'セクション', 'ホール', '種別', '希望エリア']]);
+      sheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+    } else {
+      // 既存シートにヘッダーが足りなければ追加
+      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      if (headers.length < 9 || !headers[5]) {
+        if (headers.length < 6) sheet.getRange(1, 6).setValue('セクション');
+        if (headers.length < 7) sheet.getRange(1, 7).setValue('ホール');
+        if (headers.length < 8) sheet.getRange(1, 8).setValue('種別');
+        if (headers.length < 9) sheet.getRange(1, 9).setValue('希望エリア');
+        // 旧D列「種別」をH列に移動、旧E列「登録日時」をE列のまま
+        // 旧D列を「メール」に変更
+        sheet.getRange(1, 4).setValue('メール');
+      }
+    }
+    
+    // スタッフ管理シートから表示名で照合してメール・セクション・ホールを取得
+    var staffInfo = lookupStaffByName(displayName);
+    var email = staffInfo.email || '';
+    var section = staffInfo.section || '';
+    var hall = staffInfo.hall || '';
+    var preferredArea = staffInfo.preferredArea || '';
+    var matchedName = staffInfo.staffName || staffName || '';
+    
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === lineUid) {
+        // 既存UIDを更新
+        sheet.getRange(i + 1, 2).setValue(displayName);
+        if (matchedName) sheet.getRange(i + 1, 3).setValue(matchedName);
+        if (email) sheet.getRange(i + 1, 4).setValue(email);
+        if (section) sheet.getRange(i + 1, 6).setValue(section);
+        if (hall) sheet.getRange(i + 1, 7).setValue(hall);
+        if (preferredArea) sheet.getRange(i + 1, 9).setValue(preferredArea);
+        return { success: true, message: '更新しました', isNew: false };
+      }
+    }
+    
+    sheet.appendRow([lineUid, displayName, matchedName, email, new Date(), section, hall, '', preferredArea]);
+    return { success: true, message: '登録しました', isNew: true };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// スタッフ管理シートから名前で照合
+function lookupStaffByName(displayName) {
+  try {
+    if (!displayName) return {};
+    var normalizedInput = normalizeName(displayName);
+    
+    var ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
+    if (!sheet) return {};
+    
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return {};
+    
+    var data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+    for (var i = 0; i < data.length; i++) {
+      // B列(名前)で照合
+      if (normalizeName(data[i][1]) === normalizedInput) {
+        return {
+          staffName: data[i][1] || '',
+          hall: data[i][3] || '',      // D列: ホール
+          section: data[i][4] || '',   // E列: セクション
+          email: data[i][5] || '',     // F列: メール
+          preferredArea: data[i][6] || ''  // G列: 希望エリア
+        };
+      }
+    }
+    return {};
+  } catch (error) {
+    Logger.log('lookupStaffByName エラー: ' + error.toString());
+    return {};
+  }
+}
+
 function verifyLineUid(lineUid) {
   try {
     if (!lineUid) return { success: false, verified: false, error: 'LINE UIDが必要です' };
     const ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
-    const sheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
+    const sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
     if (!sheet) return { success: true, verified: false };
     
-    var lastCol = Math.max(sheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
-    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, lastCol).getValues();
-    for (let i = 0; i < data.length; i++) {
-      if ((data[i][STAFF_COL.LINE_UID] || '').toString().trim() === lineUid) {
-        const staffName = data[i][STAFF_COL.NAME];
-        return staffName ? { success: true, verified: true, staffName: staffName } : { success: true, verified: false, message: 'スタッフ名が未登録です' };
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === lineUid) {
+        const staffName = data[i][2];
+        return staffName ? { success: true, verified: true, staffName } : { success: true, verified: false, message: 'スタッフ名が未登録です' };
       }
     }
     return { success: true, verified: false, message: 'LINE UID未登録' };
+  } catch (error) {
+    return { success: false, verified: false, error: error.toString() };
+  }
+}
+
+function registerLineStaff(params) {
+  try {
+    const name = params.name;
+    const lineUid = params.lineUid;
+    const lineDisplayName = params.lineDisplayName || '';
+    if (!name || !lineUid) return { success: false, verified: false, error: '名前とLINE UIDが必要です' };
+    
+    const staffResult = verifyStaff(name);
+    if (!staffResult.success || !staffResult.verified) return { success: true, verified: false, message: 'スタッフ名簿に登録されていません' };
+    
+    const actualStaffName = staffResult.staffName || name;
+    const ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(LINE_CONFIG.ADMIN_SHEET_NAME);
+      sheet.getRange(1, 1, 1, 5).setValues([['LINE UID', 'LINE表示名', 'スタッフ名', '種別', '登録日時']]);
+      sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === lineUid) {
+        sheet.getRange(i + 1, 2).setValue(lineDisplayName);
+        sheet.getRange(i + 1, 3).setValue(actualStaffName);
+        return { success: true, verified: true, staffName: actualStaffName };
+      }
+    }
+    
+    sheet.appendRow([lineUid, lineDisplayName, actualStaffName, '', new Date()]);
+    return { success: true, verified: true, staffName: actualStaffName };
   } catch (error) {
     return { success: false, verified: false, error: error.toString() };
   }
@@ -893,18 +913,55 @@ function getStaffProfile(email) {
   }
 }
 
+// ============================================
+// メールアドレスとLINE UIDを紐付け（LIFF連携用）
+// ============================================
+function linkLineToEmail(params) {
+  try {
+    const email = params.email;
+    const lineUid = params.lineUid;
+    const lineDisplayName = params.lineDisplayName || '';
+    if (!email || !lineUid) return { success: false, linked: false, error: 'メールアドレスとLINE UIDが必要です' };
+    
+    const staffResult = verifyStaff(email);
+    if (!staffResult.success || !staffResult.verified) return { success: true, linked: false, message: 'このメールアドレスはスタッフ名簿に登録されていません' };
+    
+    const staffName = staffResult.staffName || email;
+    const ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(LINE_CONFIG.ADMIN_SHEET_NAME);
+      sheet.getRange(1, 1, 1, 6).setValues([['LINE UID', 'LINE表示名', 'スタッフ名', 'メールアドレス', '種別', '登録日時']]);
+      sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === lineUid) {
+        sheet.getRange(i + 1, 2).setValue(lineDisplayName);
+        sheet.getRange(i + 1, 3).setValue(staffName);
+        sheet.getRange(i + 1, 4).setValue(email);
+        return { success: true, linked: true, staffName };
+      }
+    }
+    
+    sheet.appendRow([lineUid, lineDisplayName, staffName, email, '', new Date()]);
+    return { success: true, linked: true, staffName };
+  } catch (error) {
+    return { success: false, linked: false, error: error.toString() };
+  }
+}
+
 function getLineUidByEmail(email) {
   try {
     const ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
-    const sheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
+    const sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
     if (!sheet) return null;
-    var lastCol = Math.max(sheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
-    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, lastCol).getValues();
-    for (let i = 0; i < data.length; i++) {
-      if (email && data[i][STAFF_COL.EMAIL] && data[i][STAFF_COL.EMAIL].toString().trim() === email.trim()) {
-        var uid = (data[i][STAFF_COL.LINE_UID] || '').toString().trim();
-        return uid || null;
-      }
+    var lastCol = Math.max(sheet.getLastColumn(), 8);
+    const data = sheet.getRange(1, 1, sheet.getLastRow(), lastCol).getValues();
+    for (let i = 1; i < data.length; i++) {
+      // D列(メール)で検索
+      if (email && data[i][3] && data[i][3].toString().trim() === email.trim()) return data[i][0];
     }
     return null;
   } catch (error) {
@@ -912,19 +969,20 @@ function getLineUidByEmail(email) {
   }
 }
 
+// スタッフ名またはLINE表示名でUIDを検索
 function getLineUidByName(staffName) {
   try {
     if (!staffName) return null;
     var normalizedInput = normalizeName(staffName);
     const ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
-    const sheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
+    const sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
     if (!sheet) return null;
-    var lastCol = Math.max(sheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
-    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, lastCol).getValues();
-    for (let i = 0; i < data.length; i++) {
-      if (normalizeName(data[i][STAFF_COL.NAME]) === normalizedInput) {
-        var uid = (data[i][STAFF_COL.LINE_UID] || '').toString().trim();
-        return uid || null;
+    var lastCol = Math.max(sheet.getLastColumn(), 8);
+    const data = sheet.getRange(1, 1, sheet.getLastRow(), lastCol).getValues();
+    for (let i = 1; i < data.length; i++) {
+      // C列(スタッフ名)またはB列(LINE表示名)で検索
+      if (normalizeName(data[i][2]) === normalizedInput || normalizeName(data[i][1]) === normalizedInput) {
+        return data[i][0];
       }
     }
     return null;
@@ -938,41 +996,51 @@ function sendApplicationCompleteFlex(staffName, eventInfo) {
   try {
     if (!eventInfo) eventInfo = {};
     
-    // 必要事項の回答シートからUIDを検索（B列=名前, K列=LINE UID）
+    // LINE友だちシートから直接UIDを検索（B列=表示名, C列=スタッフ名）
     var ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
-    var sheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
+    var sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
     if (!sheet) {
-      Logger.log('スタッフシートがありません');
+      Logger.log('LINE友だちシートがありません');
       return false;
     }
     
     var lastRow = sheet.getLastRow();
     if (lastRow < 2) {
-      Logger.log('スタッフシートにデータがありません');
+      Logger.log('LINE友だちシートにデータがありません');
       return false;
     }
     
-    var lastCol = Math.max(sheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
-    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    var data = sheet.getRange(2, 1, lastRow - 1, 3).getValues(); // A-C列のみ
     var lineUid = null;
     var searchName = staffName ? normalizeName(staffName) : '';
     
-    // 全行を検索（B列=名前で照合）
+    // 全行を検索（B列=LINE表示名, C列=スタッフ名で照合）
     for (var i = 0; i < data.length; i++) {
-      var uid = (data[i][STAFF_COL.LINE_UID] || '').toString().trim();
-      var registeredName = normalizeName(data[i][STAFF_COL.NAME] || '');
+      var uid = (data[i][0] || '').toString().trim();
+      var displayName = normalizeName(data[i][1] || '');
+      var registeredName = normalizeName(data[i][2] || '');
       
       if (!uid) continue;
       
-      if (searchName && registeredName === searchName) {
+      if (searchName && (displayName === searchName || registeredName === searchName)) {
         lineUid = uid;
         Logger.log('UID見つかりました: ' + uid + ' (名前: ' + staffName + ')');
         break;
       }
     }
     
+    // 名前で見つからなければ、1件だけの場合はそのUIDを使う
+    if (!lineUid && data.length === 1 && data[0][0]) {
+      lineUid = data[0][0].toString().trim();
+      Logger.log('LINE友だちが1件のみ、そのUIDを使用: ' + lineUid);
+    }
+    
     if (!lineUid) {
       Logger.log('UIDが見つかりません。検索名: ' + staffName);
+      // LINE友だちシートの全データをログ出力
+      for (var j = 0; j < data.length; j++) {
+        Logger.log('  行' + (j+2) + ': UID=' + data[j][0] + ', 表示名=' + data[j][1] + ', スタッフ名=' + data[j][2]);
+      }
       return false;
     }
     
@@ -1325,7 +1393,11 @@ function handleConfirmApplication(params, senderUid) {
   }
 }
 
-
+// 名前の正規化（スペースの全角半角・前後空白の差を吸収）
+function normalizeName(name) {
+  if (!name) return '';
+  return name.toString().trim().replace(/\s+/g, ' ').replace(/　/g, ' ');
+}
 
 // 申し込みLINEメッセージをパース
 function parseApplicationMessage(text) {
@@ -1963,8 +2035,6 @@ function onHallFormSubmit(e) {
         isHallForm = false;
         // ホール登録以外のフォーム（必要事項の回答等）でも管理者権限は同期する
         syncAdminPermissions();
-        // LINE UIDをキャッシュから書き込み（新規ユーザー対応）
-        onFormSubmitUid(e);
         return;
       }
     }
@@ -2202,39 +2272,40 @@ function notifyNewRecruitment(eventData) {
     var hallArea = areaMap[eventData.hall] || '';
     Logger.log('募集ホール: ' + eventData.hall + ' → エリア: ' + (hallArea || '未設定'));
     
-    // 必要事項の回答シートからUID+セクション+希望エリアを取得
+    // LINE友だちシートからUID+セクション+希望エリアを取得
     var ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
-    var sheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
+    var sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
     if (!sheet) {
-      Logger.log('スタッフシートが見つかりません');
+      Logger.log('LINE友だちシートが見つかりません');
       return;
     }
     
     var lastRow = sheet.getLastRow();
     if (lastRow < 2) {
-      Logger.log('スタッフシートにデータがありません');
+      Logger.log('LINE友だちシートにデータがありません');
       return;
     }
     
-    // B列=名前, E列=セクション, G列=希望エリア, K列=LINE UID
-    var lastCol = Math.max(sheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
+    // A列=UID, B列=表示名, C列=スタッフ名, F列=セクション(6列目), I列=希望エリア(9列目)
+    var lastCol = Math.max(sheet.getLastColumn(), 9);
     var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
     
     var notifiedCount = 0;
     
     for (var i = 0; i < data.length; i++) {
-      var uid = (data[i][STAFF_COL.LINE_UID] || '').toString().trim();
-      var staffName = (data[i][STAFF_COL.NAME] || '').toString().trim();
-      var staffSection = (data[i][STAFF_COL.SECTION] || '').toString().trim();
-      var userArea = (data[i][STAFF_COL.PREFERRED_AREA] || '').toString().trim();
+      var uid = (data[i][0] || '').toString().trim();        // A列: LINE UID
+      var staffName = (data[i][2] || data[i][1] || '').toString().trim(); // C列 or B列
+      var staffSection = (data[i][5] || '').toString().trim(); // F列(6列目): セクション
+      var userArea = (data[i][8] || '').toString().trim();   // I列(9列目): 希望エリア
       
       if (!uid) continue;
       
+      // セクション情報がない場合はスキップ
       var shouldNotify = false;
       if (!staffSection) {
-        // セクション未設定 → 全ての募集を通知
-        shouldNotify = true;
-        Logger.log('セクション未設定 → 全募集通知対象: ' + staffName);
+        // セクション未設定 → スキップ
+        Logger.log('セクション未設定のためスキップ: ' + staffName);
+        continue;
       } else {
         // セクションが一致するか確認
         for (var j = 0; j < uniqueSections.length; j++) {
@@ -2501,6 +2572,114 @@ function createNewRecruitmentMessage(eventData, sections, staffName) {
   };
 }
 
+  var ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
+  if (!sheet) { Logger.log('LINE友だちシートがありません'); return; }
+  
+  // ヘッダー確認・追加
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers.length < 6) sheet.getRange(1, 6).setValue('セクション');
+  if (headers.length < 7) sheet.getRange(1, 7).setValue('ホール');
+  if (headers.length < 8) sheet.getRange(1, 8).setValue('種別');
+  if (headers.length < 9) sheet.getRange(1, 9).setValue('希望エリア');
+  sheet.getRange(1, 4).setValue('メール');
+  
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) { Logger.log('データがありません'); return; }
+  
+  var data = sheet.getRange(2, 1, lastRow - 1, Math.max(sheet.getLastColumn(), 8)).getValues();
+  var updated = 0;
+  
+  for (var i = 0; i < data.length; i++) {
+    var displayName = (data[i][1] || '').toString().trim(); // B列: LINE表示名
+    if (!displayName) continue;
+    
+    var staffInfo = lookupStaffByName(displayName);
+    if (!staffInfo.staffName) continue;
+    
+    var row = i + 2;
+    if (staffInfo.staffName) sheet.getRange(row, 3).setValue(staffInfo.staffName);
+    if (staffInfo.email) sheet.getRange(row, 4).setValue(staffInfo.email);
+    if (staffInfo.section) sheet.getRange(row, 6).setValue(staffInfo.section);
+    if (staffInfo.hall) sheet.getRange(row, 7).setValue(staffInfo.hall);
+    if (staffInfo.preferredArea) sheet.getRange(row, 9).setValue(staffInfo.preferredArea);
+    updated++;
+    Logger.log('更新: ' + displayName + ' → セクション:' + staffInfo.section + ' ホール:' + staffInfo.hall + ' エリア:' + (staffInfo.preferredArea || ''));
+  }
+  
+  Logger.log('完了: ' + updated + '名のスタッフ情報を補完しました');
+}
+
+
+  try {
+    var responses = e.values;
+    if (!responses || responses.length < 3) return;
+    
+    // フォーム回答から情報取得
+    var staffName = (responses[1] || '').trim();        // B列: お名前(フルネーム)
+    var lineDisplayName = (responses[2] || '').trim();  // C列: LINE表示名
+    var staffHall = (responses[3] || '').trim();        // D列: 所属ホール
+    var staffSection = (responses[4] || '').trim();     // E列: セクション
+    var staffEmail = (responses[5] || '').trim();       // F列: メール
+    var preferredArea = (responses[6] || '').trim();    // G列: 希望エリア
+    
+    if (!lineDisplayName) {
+      Logger.log('LINE表示名が空のためスキップ');
+      return;
+    }
+    
+    Logger.log('スタッフ登録: ' + staffName + ' (LINE: ' + lineDisplayName + ')');
+    
+    // LINE友だちシートでLINE表示名を検索
+    var ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
+    if (!sheet) {
+      Logger.log('LINE友だちシートがありません');
+      return;
+    }
+    
+    // ヘッダー確認
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (headers.length < 6) sheet.getRange(1, 6).setValue('セクション');
+    if (headers.length < 7) sheet.getRange(1, 7).setValue('ホール');
+    if (headers.length < 8) sheet.getRange(1, 8).setValue('種別');
+    if (headers.length < 9) sheet.getRange(1, 9).setValue('希望エリア');
+    sheet.getRange(1, 4).setValue('メール');
+    
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) {
+      Logger.log('LINE友だちシートにデータがありません');
+      return;
+    }
+    
+    var data = sheet.getRange(2, 1, lastRow - 1, Math.max(sheet.getLastColumn(), 8)).getValues();
+    var normalizedLineDisplay = normalizeName(lineDisplayName);
+    var matched = false;
+    
+    for (var i = 0; i < data.length; i++) {
+      var sheetDisplayName = (data[i][1] || '').toString().trim(); // B列: LINE表示名
+      
+      if (normalizeName(sheetDisplayName) === normalizedLineDisplay) {
+        var row = i + 2;
+        sheet.getRange(row, 3).setValue(staffName);      // C列: スタッフ名
+        sheet.getRange(row, 4).setValue(staffEmail);      // D列: メール
+        sheet.getRange(row, 6).setValue(staffSection);    // F列: セクション
+        sheet.getRange(row, 7).setValue(staffHall);       // G列: ホール
+        if (preferredArea) sheet.getRange(row, 9).setValue(preferredArea); // I列: 希望エリア
+        matched = true;
+        Logger.log('LINE友だち紐付け完了: ' + lineDisplayName + ' → ' + staffName + ' (セクション: ' + staffSection + ', エリア: ' + preferredArea + ')');
+        break;
+      }
+    }
+    
+    if (!matched) {
+      Logger.log('LINE友だちシートに該当なし: ' + lineDisplayName);
+    }
+  } catch (error) {
+    Logger.log('onStaffFormSubmit エラー: ' + error.toString());
+  }
+}
+
 // ============================================
 // スプレッドシート削除時のカレンダーイベント連動削除
 // ※トリガー設定: 時間主導型（5分おき等）で実行
@@ -2605,6 +2784,184 @@ function makeEventKey(date, hall) {
 
 
 
+
+  try {
+    var calendar = CalendarApp.getCalendarById(CONFIG.CALENDAR_ID);
+    if (!calendar) {
+      Logger.log('カレンダーが見つかりません');
+      return;
+    }
+    
+    // 募集完了ステータスを取得
+    var closedStatuses = {};
+    try {
+      var mgmtSheet = getOrCreateManagementSheet();
+      var mgmtLastRow = mgmtSheet.getLastRow();
+      if (mgmtLastRow >= 2) {
+        var mgmtData = mgmtSheet.getRange(2, 1, mgmtLastRow - 1, 3).getValues();
+        for (var m = 0; m < mgmtData.length; m++) {
+          if (mgmtData[m][2] === true || mgmtData[m][2] === 'TRUE') {
+            closedStatuses[mgmtData[m][0]] = true;
+          }
+        }
+      }
+    } catch (e) {
+      Logger.log('ステータス取得エラー: ' + e.toString());
+    }
+    
+    // 今日から25日～35日後のイベントを取得（約1ヶ月前）
+    var now = new Date();
+    var start = new Date(now.getTime() + 25 * 24 * 60 * 60 * 1000);
+    var end = new Date(now.getTime() + 35 * 24 * 60 * 60 * 1000);
+    var calEvents = calendar.getEvents(start, end);
+    
+    // LINE友だちシートからUIDとセクションを取得
+    var ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
+    var friendSheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
+    if (!friendSheet || friendSheet.getLastRow() < 2) {
+      Logger.log('LINE友だちシートにデータがありません');
+      return;
+    }
+    var lastCol = Math.max(friendSheet.getLastColumn(), 9);
+    var friendData = friendSheet.getRange(2, 1, friendSheet.getLastRow() - 1, lastCol).getValues();
+    
+    // エリアマスタを取得
+    var areaMap = getAreaMap();
+    
+    var reminderCount = 0;
+    
+    for (var j = 0; j < calEvents.length; j++) {
+      var calEvent = calEvents[j];
+      var title = calEvent.getTitle();
+      
+      // 増員イベントのみ対象
+      if (!title.includes('【増員】')) continue;
+      
+      // イベントキーを生成して募集完了かチェック
+      var eventDate = calEvent.getAllDayStartDate();
+      var hallMatch = title.match(/【増員】(.+?)(?:\s*\(|$)/);
+      var eventHall = hallMatch ? hallMatch[1].trim() : '';
+      
+      // イベントキーで募集完了チェック
+      var eventKey = Utilities.formatDate(eventDate, 'Asia/Tokyo', 'yyyy-MM-dd') + '_' + eventHall;
+      if (closedStatuses[eventKey]) {
+        Logger.log('募集完了済みスキップ: ' + title);
+        continue;
+      }
+      
+      // イベントの説明からセクションと人数を抽出
+      var description = calEvent.getDescription() || '';
+      var sectionDetails = [];
+      var recruitSections = [];
+      
+      var stageMatch = description.match(/舞台[:|：]\s*(\d+)人/);
+      var soundMatch = description.match(/音響[:|：]\s*(\d+)人/);
+      var lightMatch = description.match(/照明[:|：]\s*(\d+)人/);
+      
+      if (stageMatch) { sectionDetails.push('・舞台：' + stageMatch[1] + '人'); recruitSections.push('舞台'); }
+      if (soundMatch) { sectionDetails.push('・音響：' + soundMatch[1] + '人'); recruitSections.push('音響'); }
+      if (lightMatch) { sectionDetails.push('・照明：' + lightMatch[1] + '人'); recruitSections.push('照明'); }
+      
+      if (sectionDetails.length === 0) {
+        Logger.log('セクション情報なしスキップ: ' + title);
+        continue;
+      }
+      
+      // 日付フォーマット
+      var dateText = (eventDate.getMonth() + 1) + '月' + eventDate.getDate() + '日';
+      
+      // 時間帯情報
+      var timeSlotMatch = description.match(/【利用区分】\s*\n\s*(.+)/);
+      var timeSlot = timeSlotMatch ? timeSlotMatch[1].trim() : '';
+      
+      // 若手OKチェック
+      var isJuniorOk = description.includes('若手可') || title.includes('🔰');
+      
+      // リマインドメッセージを生成
+      var text = '⚠️ 増員募集再通知⚠️\n\n';
+      text += '📍 ' + eventHall + '\n';
+      text += '📅 ' + dateText + '\n';
+      if (timeSlot) text += '🕔 ' + timeSlot + '\n';
+      text += '\n🎭 募集セクション\n';
+      text += sectionDetails.join('\n') + '\n';
+      if (isJuniorOk) text += '\n🔰若手OK🔰\n';
+      text += '\n🔍 詳細 確認＆🏃\u200d♂️ 応募方法\n';
+      text += '　メニューの【SIGMA】をタップし\n';
+      text += '増員カレンダーからお願いします。';
+      
+      var message = { type: 'text', text: text };
+      
+      // 該当セクションのスタッフに通知
+      for (var k = 0; k < friendData.length; k++) {
+        var friendUid = (friendData[k][0] || '').toString().trim();
+        var friendSection = (friendData[k][5] || '').toString().trim(); // F列: セクション
+        
+        if (!friendUid || !friendSection) continue;
+        
+        var shouldNotify = false;
+        for (var s = 0; s < recruitSections.length; s++) {
+          if (friendSection.indexOf(recruitSections[s]) >= 0) {
+            shouldNotify = true;
+            break;
+          }
+        }
+        
+        if (!shouldNotify) continue;
+        
+        // エリア判定
+        var eventArea = areaMap[eventHall] || '';
+        if (eventArea) {
+          var friendArea = (friendData[k][8] || '').toString().trim(); // I列: 希望エリア
+          if (!shouldNotifyByArea(eventArea, friendArea)) continue;
+        }
+        
+        try {
+          UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+            method: 'post',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + LINE_CONFIG.CHANNEL_ACCESS_TOKEN },
+            payload: JSON.stringify({ to: friendUid, messages: [message] }),
+            muteHttpExceptions: true
+          });
+          reminderCount++;
+        } catch (pushErr) {
+          Logger.log('リマインド送信エラー: ' + pushErr.toString());
+        }
+      }
+      
+      Logger.log('リマインド送信: ' + title);
+    }
+    
+    Logger.log('リマインド完了: ' + reminderCount + '件送信');
+  } catch (error) {
+    Logger.log('sendRecruitmentReminders エラー: ' + error.toString());
+  }
+}
+
+// ============================================
+// [デバッグ用] カレンダーイベントのdescriptionを確認
+// GASエディタからこの関数を手動実行し、ログで【催事名】の有無を確認
+// ============================================
+function debugCheckDescriptions() {
+  var calendar = CalendarApp.getCalendarById(CONFIG.CALENDAR_ID);
+  var now = new Date();
+  var future = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+  var events = calendar.getEvents(now, future);
+  
+  events.forEach(function(event) {
+    var title = event.getTitle();
+    var desc = event.getDescription() || '';
+    var has催事名 = desc.indexOf('【催事名】') >= 0;
+    var parsed = parseDescription(desc);
+    
+    Logger.log('---');
+    Logger.log('タイトル: ' + title);
+    Logger.log('【催事名】含む: ' + has催事名);
+    Logger.log('parsed.eventName: ' + parsed.eventName);
+    Logger.log('parsed.content: ' + parsed.content);
+    Logger.log('description全文:\n' + desc);
+  });
+}
+
 // ============================================
 // 増員募集リマインド通知（1回限定・フォーム送信から7日経過）
 // ※セクション判定・エリア判定を既存通知と同様に適用
@@ -2665,14 +3022,14 @@ function checkAndSendReminders() {
     // エリアマスタ取得
     var areaMap = getAreaMap();
     
-    // 必要事項の回答シート取得
+    // LINE友だちシート取得
     var ss = SpreadsheetApp.openById(STAFF_CONFIG.SPREADSHEET_ID);
-    var friendSheet = ss.getSheetByName(STAFF_CONFIG.SHEET_NAME);
+    var friendSheet = ss.getSheetByName(LINE_CONFIG.ADMIN_SHEET_NAME);
     if (!friendSheet || friendSheet.getLastRow() < 2) {
-      Logger.log('リマインド: スタッフシートにデータがありません');
+      Logger.log('リマインド: LINE友だちシートにデータがありません');
       return;
     }
-    var friendLastCol = Math.max(friendSheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
+    var friendLastCol = Math.max(friendSheet.getLastColumn(), 9);
     var friendData = friendSheet.getRange(2, 1, friendSheet.getLastRow() - 1, friendLastCol).getValues();
     
     var now = new Date();
@@ -2735,23 +3092,18 @@ function checkAndSendReminders() {
       // セクション＋エリアフィルタリングして通知
       var notifiedCount = 0;
       for (var k = 0; k < friendData.length; k++) {
-        var friendUid = (friendData[k][STAFF_COL.LINE_UID] || '').toString().trim();
-        var friendSection = (friendData[k][STAFF_COL.SECTION] || '').toString().trim();
-        var friendArea = (friendData[k][STAFF_COL.PREFERRED_AREA] || '').toString().trim();
+        var friendUid = (friendData[k][0] || '').toString().trim();
+        var friendSection = (friendData[k][5] || '').toString().trim();
+        var friendArea = (friendData[k][8] || '').toString().trim();
         
-        if (!friendUid) continue;
+        if (!friendUid || !friendSection) continue;
         
         // セクション一致チェック
         var sectionMatch = false;
-        if (!friendSection) {
-          // セクション未設定 → 全募集通知対象
-          sectionMatch = true;
-        } else {
-          for (var s = 0; s < recruitSections.length; s++) {
-            if (friendSection.indexOf(recruitSections[s]) >= 0) {
-              sectionMatch = true;
-              break;
-            }
+        for (var s = 0; s < recruitSections.length; s++) {
+          if (friendSection.indexOf(recruitSections[s]) >= 0) {
+            sectionMatch = true;
+            break;
           }
         }
         if (!sectionMatch) continue;
@@ -3007,18 +3359,26 @@ function getSystemAdminLineUids() {
     var lastRow = staffSheet.getLastRow();
     if (lastRow < 2) return result;
     
-    var lastCol = Math.max(staffSheet.getLastColumn(), STAFF_COL.LINE_UID + 1);
-    var data = staffSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    // A〜J列（10列）を取得
+    var data = staffSheet.getRange(2, 1, lastRow - 1, 10).getValues();
     
     for (var i = 0; i < data.length; i++) {
-      var isSystemAdmin = data[i][STAFF_COL.IS_SYSTEM_ADMIN];
+      var isSystemAdmin = data[i][9]; // J列（10列目、インデックス9）
       if (isSystemAdmin !== true && isSystemAdmin !== 'TRUE') continue;
       
-      var staffName = (data[i][STAFF_COL.NAME] || '').toString().trim();
-      var staffEmail = (data[i][STAFF_COL.EMAIL] || '').toString().trim();
-      var uid = (data[i][STAFF_COL.LINE_UID] || '').toString().trim();
+      var staffName = (data[i][1] || '').toString().trim();  // B列: 名前
+      var staffEmail = (data[i][5] || '').toString().trim();  // F列: メール
       
       if (!staffName && !staffEmail) continue;
+      
+      // LINE UIDを検索（メール → 名前 の優先順）
+      var uid = null;
+      if (staffEmail) {
+        uid = getLineUidByEmail(staffEmail);
+      }
+      if (!uid && staffName) {
+        uid = getLineUidByName(staffName);
+      }
       
       if (uid) {
         result.push({ uid: uid, staffName: staffName, email: staffEmail });

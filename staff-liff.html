@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>スタッフ登録 - 増員 CONTROL HUB</title>
+    <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0f1c 0%, #1a1f3c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            color: #4ade80;
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .status {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .status-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .status-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .consent-screen {
+            text-align: center;
+        }
+
+        .consent-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .consent-title {
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .consent-list {
+            text-align: left;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+
+        .consent-list li {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            list-style: none;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .consent-list li::before {
+            content: '✅';
+            position: absolute;
+            left: 0;
+        }
+
+        .consent-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .consent-note {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        .user-info .name {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .user-info .sub {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.8rem;
+            margin-top: 4px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(74, 222, 128, 0.3);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .redirect-info {
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .redirect-info p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .redirect-info .countdown {
+            color: #4ade80;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>📋 増員 CONTROL HUB</h1>
+            <p>スタッフ登録 LINE連携</p>
+        </div>
+
+        <!-- 同意説明画面 -->
+        <div id="consent" class="consent-screen">
+            <div class="consent-icon">🔒</div>
+            <div class="consent-title">以下の情報を使用します</div>
+            <ul class="consent-list">
+                <li>LINEプロフィール（名前・アイコン）</li>
+                <li>増員募集時のLINE通知の送信</li>
+            </ul>
+            <p class="consent-note">※ 上記以外の目的では使用しません。<br>次の画面でLINEからの認証が求められます。</p>
+            <button class="btn btn-primary" onclick="startLiffInit()">同意してフォームに進む</button>
+        </div>
+
+        <!-- ローディング状態 -->
+        <div id="loading" class="status hidden">
+            <div class="status-icon">⏳</div>
+            <div class="status-text">LINE情報を取得中...</div>
+        </div>
+
+        <!-- 成功 → リダイレクト -->
+        <div id="success" class="status hidden">
+            <div class="status-icon">✅</div>
+            <div class="status-text">LINE連携完了！<br>スタッフ登録フォームに移動します。</div>
+            <div id="lineUserInfo" class="user-info hidden"></div>
+            <div class="redirect-info">
+                <p>自動的にフォームが開きます</p>
+                <div class="countdown" id="countdown">3</div>
+            </div>
+        </div>
+
+        <!-- エラー状態 -->
+        <div id="error" class="status hidden">
+            <div class="status-icon">❌</div>
+            <div class="status-text" id="errorText" style="color: #f87171;">エラーが発生しました</div>
+            <button class="btn btn-primary" onclick="goToForm()" style="margin-top: 15px;">
+                フォームに直接進む
+            </button>
+            <button class="btn" onclick="retry()" style="background:rgba(255,255,255,0.1);color:#fff;margin-top:8px;">
+                再試行
+            </button>
+        </div>
+
+        <!-- LINE外でアクセス -->
+        <div id="notInLine" class="status hidden">
+            <div class="status-icon">📱</div>
+            <div class="status-text">
+                LINE通知を受け取るには<br>LINEアプリからアクセスしてください。
+            </div>
+            <button class="btn btn-primary" onclick="goToForm()" style="margin-top: 15px;">
+                LINE連携せずフォームに進む
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const LIFF_ID = '2009352428-3iGJIqOe';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwqeiRNp7oueT0NZqxNrn5n4OONm6Y-NUaNhXEIAS5QrR8boqQzG7fdc0VQ_n_sPZ6_/exec';
+        const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe8EqSOf6mw1ue7Uq1PybW6dwmUu5Y_Ou7TVK_fUCfem0R76A/viewform';
+
+        let profile = null;
+        let uidSaved = false;
+
+        // JSONP方式でGAS APIを呼び出し、LINE UIDをスプレッドシートに直接保存
+        function saveLineUidToSheet(userProfile) {
+            return new Promise(function(resolve) {
+                const callbackName = 'saveUidCb_' + Date.now();
+                const params = new URLSearchParams({
+                    action: 'saveLineUid',
+                    lineUid: userProfile.userId,
+                    displayName: userProfile.displayName || '',
+                    callback: callbackName
+                });
+
+                const timeout = setTimeout(function() {
+                    delete window[callbackName];
+                    const el = document.getElementById(callbackName);
+                    if (el) el.remove();
+                    console.warn('UID保存タイムアウト');
+                    resolve(false);
+                }, 10000);
+
+                window[callbackName] = function (data) {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    const el = document.getElementById(callbackName);
+                    if (el) el.remove();
+                    if (data && data.success) {
+                        uidSaved = true;
+                        console.log('UID保存成功:', data.message);
+                        resolve(true);
+                    } else {
+                        console.warn('UID保存失敗:', data);
+                        resolve(false);
+                    }
+                };
+
+                const script = document.createElement('script');
+                script.id = callbackName;
+                script.src = `${GAS_URL}?${params.toString()}`;
+                script.onerror = function () {
+                    clearTimeout(timeout);
+                    delete window[callbackName];
+                    script.remove();
+                    console.warn('UID保存エラー');
+                    resolve(false);
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+        function startLiffInit() {
+            document.getElementById('consent').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            initializeLiff();
+        }
+
+        async function initializeLiff() {
+            try {
+                document.querySelector('#loading .status-text').textContent = 'LIFF SDK を初期化中...';
+
+                await Promise.race([
+                    liff.init({ liffId: LIFF_ID }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('タイムアウト')), 15000))
+                ]);
+
+                if (!liff.isInClient()) {
+                    showNotInLine();
+                    return;
+                }
+
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
+                document.querySelector('#loading .status-text').textContent = 'プロフィールを取得中...';
+                profile = await liff.getProfile();
+
+                // LINE UIDをスプレッドシートに直接保存
+                document.querySelector('#loading .status-text').textContent = 'LINE情報を保存中...';
+                await saveLineUidToSheet(profile);
+
+                // 成功画面を表示してフォームにリダイレクト
+                showSuccess(profile);
+
+            } catch (error) {
+                console.error('LIFF初期化エラー:', error);
+                showError(error.message || String(error));
+            }
+        }
+
+        function showSuccess(profile) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('success').classList.remove('hidden');
+
+            if (profile) {
+                const userInfo = document.getElementById('lineUserInfo');
+                userInfo.innerHTML = `
+                    <img src="${profile.pictureUrl || ''}" alt="">
+                    <div>
+                        <div class="name">${profile.displayName}</div>
+                        <div class="sub">LINE連携完了 ✅</div>
+                        <div class="sub" style="font-size:11px;color:${uidSaved ? '#1DB446' : '#ff4444'}">
+                            UID保存: ${uidSaved ? '✅ 完了' : '⚠️ フォーム送信後に反映'}
+                        </div>
+                    </div>
+                `;
+                userInfo.classList.remove('hidden');
+            }
+
+            // 3秒カウントダウンしてフォームにリダイレクト
+            let count = 3;
+            const countdownEl = document.getElementById('countdown');
+            const timer = setInterval(() => {
+                count--;
+                countdownEl.textContent = count;
+                if (count <= 0) {
+                    clearInterval(timer);
+                    goToForm();
+                }
+            }, 1000);
+        }
+
+        function goToForm() {
+            window.location.href = FORM_URL;
+        }
+
+        function showError(message) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('errorText').textContent = message;
+        }
+
+        function showNotInLine() {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('notInLine').classList.remove('hidden');
+        }
+
+        function retry() {
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>
