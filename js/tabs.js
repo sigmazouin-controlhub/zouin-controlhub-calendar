@@ -247,15 +247,48 @@
     // ============================================
     // カードからドロワーを直接起動するグローバル関数
     // ============================================
-    /** イベントIDからイベントオブジェクトを検索 */
-    function findEventById(eventId) {
+    /**
+     * calendar.js の eventsData（フル情報）からイベントを検索。
+     * window.calendarEvents は簡略化されたリストのため、
+     * openDrawer が必要とする startDate/endDate/description/parsedSections 等が欠落する。
+     * eventsData[dateStr] から該当イベントを取得することで、
+     * カレンダーバッジクリック時と同じフル情報をドロワーに渡す。
+     */
+    function findFullEvent(startDateStr, eventId) {
+        // calendar.js の eventsData（日付→イベント配列のマップ）を取得
+        const eventsData = window.calendarApp?.eventsData;
+        if (eventsData) {
+            // startDateStr から YYYY-MM-DD を生成
+            const d = new Date(startDateStr);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const dy = String(d.getDate()).padStart(2, '0');
+            const dateKey = `${y}-${m}-${dy}`;
+
+            const dayEvents = eventsData[dateKey];
+            if (dayEvents && dayEvents.length > 0) {
+                // 簡略リストからタイトルを取得してマッチ
+                const simplifiedEvents = window.calendarEvents || [];
+                const simpleEv = simplifiedEvents.find(ev => generateEventId(ev) === eventId);
+                if (simpleEv) {
+                    // title と hall でフルイベントを検索
+                    const fullEv = dayEvents.find(e =>
+                        e.title === simpleEv.title && e.hall === simpleEv.hall
+                    );
+                    if (fullEv) return fullEv;
+                }
+                // フォールバック: 最初のイベント
+                return dayEvents[0];
+            }
+        }
+        // 最終フォールバック: 簡略リストから
         const events = window.calendarEvents || [];
         return events.find(ev => generateEventId(ev) === eventId) || null;
     }
 
     /** カードタップ → ドロワー起動 */
     window._tabsOpenDrawer = function (startDateStr, eventId) {
-        const ev = findEventById(eventId);
+        const ev = findFullEvent(startDateStr, eventId);
         if (!ev) return;
         const date = new Date(startDateStr);
         if (window.openDrawer) {
@@ -333,48 +366,32 @@
     // 【要件4】ホール情報 - エリア別グループ化 + アコーディオン + 検索
     // ============================================
 
-    /** 住所から都道府県を抽出 */
-    function extractPrefecture(address) {
+    /** 住所からエリアグループを判定（東京・神奈川・埼玉・千葉・その他） */
+    function extractAreaGroup(address) {
         if (!address) return 'その他';
-        // 北海道、東京都、京都府、大阪府、〇〇県
-        const match = address.match(/^(北海道|東京都|京都府|大阪府|.{2,3}県)/);
-        return match ? match[1] : 'その他';
-    }
-
-    /** 都道府県名から「○○エリア」ラベルに変換 */
-    function toAreaLabel(pref) {
-        // 「都」「府」「県」を除去してエリア化
-        return pref.replace(/(都|府|県)$/, '') + 'エリア';
+        if (address.startsWith('東京都') || address.startsWith('東京')) return '東京';
+        if (address.startsWith('神奈川県') || address.startsWith('神奈川')) return '神奈川';
+        if (address.startsWith('埼玉県') || address.startsWith('埼玉')) return '埼玉';
+        if (address.startsWith('千葉県') || address.startsWith('千葉')) return '千葉';
+        return 'その他';
     }
 
     function renderHallList(halls) {
         const container = document.getElementById('hallInfoContent');
         if (!container) return;
 
-        // 都道府県でグループ化
+        // エリアでグループ化
         const groupMap = {};
         halls.forEach(hall => {
-            const pref = extractPrefecture(hall.address);
-            if (!groupMap[pref]) groupMap[pref] = [];
-            groupMap[pref].push(hall);
+            const area = extractAreaGroup(hall.address);
+            if (!groupMap[area]) groupMap[area] = [];
+            groupMap[area].push(hall);
         });
 
-        // 都道府県の並び順（おおよそ北→南）
-        const prefOrder = [
-            '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
-            '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
-            '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県',
-            '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県',
-            '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県',
-            '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県',
-            '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県', 'その他'
-        ];
+        // 指定の並び順
+        const areaOrder = ['東京', '神奈川', '埼玉', '千葉', 'その他'];
 
-        const sortedPrefs = Object.keys(groupMap).sort((a, b) => {
-            const ia = prefOrder.indexOf(a);
-            const ib = prefOrder.indexOf(b);
-            return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-        });
+        const sortedAreas = areaOrder.filter(a => groupMap[a] && groupMap[a].length > 0);
 
         const colors = ['#1a5276', '#1a6b4a', '#7d3c98', '#c0392b', '#2471a3', '#148f77', '#884ea0', '#cb4335'];
 
@@ -392,12 +409,12 @@
         `;
 
         let globalIndex = 0;
-        sortedPrefs.forEach((pref, prefIdx) => {
-            const areaHalls = groupMap[pref];
-            const areaLabel = toAreaLabel(pref);
+        sortedAreas.forEach((area) => {
+            const areaHalls = groupMap[area];
+            const areaLabel = area + 'エリア';
 
             html += `
-                <div class="hall-area-group" data-pref="${pref}">
+                <div class="hall-area-group" data-pref="${area}">
                     <div class="hall-area-header open" onclick="window._tabsToggleArea(this)">
                         <div class="hall-area-title">
                             🏛 ${areaLabel}
@@ -744,7 +761,7 @@
         const hall = localStorage.getItem('zouin_staff_hall') || '---';
         const isAdmin = window.isAdmin || localStorage.getItem('zouin_is_admin') === 'true';
 
-        // 申込履歴のレンダリング（ダミーデータ or 将来API対応）
+        // 申込履歴のレンダリング（将来API対応 - 現在はデータなし）
         const applicationHistoryHtml = renderApplicationHistory();
 
         container.innerHTML = `
@@ -782,18 +799,11 @@
 
     /**
      * 申込履歴セクションを描画
-     * 現在はダミーデータで表示。将来APIから取得する場合は
-     * renderApplicationHistory(apiData) のように引数を渡す設計。
+     * 将来GAS APIからデータ取得後、renderApplicationHistory(apiData) で呼び出す設計。
+     * 現時点ではAPIがないため、タイトルと空状態のみ表示。
      */
     function renderApplicationHistory(data) {
-        // ダミーデータ（将来的にはGAS APIから取得）
-        const dummyData = [
-            { date: '2026-08-10', hall: '東京国際フォーラム', event: '夏のオーケストラコンサート', status: 'confirmed' },
-            { date: '2026-08-15', hall: 'NHKホール', event: '歌謡祭リハーサル', status: 'pending' },
-            { date: '2026-07-20', hall: 'サントリーホール', event: 'ジャズフェスティバル', status: 'cancelled' },
-        ];
-
-        const items = data || dummyData;
+        const items = data || null;
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
 
         const statusLabels = {
