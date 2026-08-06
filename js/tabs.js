@@ -30,7 +30,7 @@
     /** イベントから一意なIDを生成 */
     function generateEventId(ev) {
         const title = ev.title || ev.hall || '';
-        const start = ev.start || ev.startDate || '';
+        const start = ev.startDate || ev.start || '';
         return btoa(unescape(encodeURIComponent(title + '_' + start))).replace(/[=+/]/g, '');
     }
 
@@ -164,24 +164,26 @@
 
         // 未来のイベントをフィルタ & セクションマッチ
         const upcoming = events.filter(ev => {
-            const start = new Date(ev.start);
+            const start = new Date(ev.startDate);
             if (start < now) return false;
-            if (!ev.sections) return true;
+            const ps = ev.parsedSections;
+            if (!ps) return true;
             if (!userSection) return true;
-            // セクションマッチ
-            if (userSection.includes('舞台') && ev.sections.stage > 0) return true;
-            if (userSection.includes('音響') && ev.sections.sound > 0) return true;
-            if (userSection.includes('照明') && ev.sections.lighting > 0) return true;
+            if (userSection.includes('舞台') && ps.stage > 0) return true;
+            if (userSection.includes('音響') && ps.sound > 0) return true;
+            if (userSection.includes('照明') && ps.lighting > 0) return true;
             return false;
-        }).sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 4);
+        }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate)).slice(0, 4);
 
         if (upcoming.length === 0) {
             container.innerHTML = '<div class="upcoming-empty">現在、募集中のイベントはありません</div>';
             return;
         }
 
+        const timeSlotLabels = { allday: '全日', morning: '午前', afternoon: '午後', evening: '夜間', morningAfternoon: '午前午後', afternoonEvening: '午後夜間' };
+
         container.innerHTML = upcoming.map(ev => {
-            const start = new Date(ev.start);
+            const start = new Date(ev.startDate);
             const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
             const month = start.getMonth() + 1;
             const day = start.getDate();
@@ -196,15 +198,16 @@
             const eventName = ev.eventName || '';
 
             // 区分
-            const timeSlot = ev.timeSlot || '';
+            const timeSlot = timeSlotLabels[ev.timeSlot] || ev.timeSlot || '';
 
             // 募集セクション
             let recruitInfo = '';
-            if (ev.sections) {
+            const ps = ev.parsedSections;
+            if (ps) {
                 const parts = [];
-                if (ev.sections.stage > 0) parts.push(`舞台 ${ev.sections.stage}名`);
-                if (ev.sections.sound > 0) parts.push(`音響 ${ev.sections.sound}名`);
-                if (ev.sections.lighting > 0) parts.push(`照明 ${ev.sections.lighting}名`);
+                if (ps.stage > 0) parts.push(`舞台 ${ps.stage}名`);
+                if (ps.sound > 0) parts.push(`音響 ${ps.sound}名`);
+                if (ps.lighting > 0) parts.push(`照明 ${ps.lighting}名`);
                 recruitInfo = parts.join('、');
             }
 
@@ -217,11 +220,11 @@
                     <button class="keep-btn ${kept ? 'active' : ''}" data-event-id="${eventId}" onclick="event.stopPropagation(); window._tabsToggleKeep(this, '${eventId}');" aria-label="キープ">
                         ${kept ? '★' : '☆'}
                     </button>
-                    <div class="upcoming-card-date" onclick="window._tabsOpenDrawer('${ev.start}', '${eventId}')">
+                    <div class="upcoming-card-date" onclick="window._tabsOpenDrawer('${ev.startDate}', '${eventId}')">
                         <span class="upcoming-date-month">${month}/${day}</span>
                         <span class="upcoming-date-day">（${dayOfWeek}）</span>
                     </div>
-                    <div class="upcoming-card-info" onclick="window._tabsOpenDrawer('${ev.start}', '${eventId}')">
+                    <div class="upcoming-card-info" onclick="window._tabsOpenDrawer('${ev.startDate}', '${eventId}')">
                         <div class="upcoming-card-hall">
                             <span class="legend-dot ${sectionDot}" style="margin-right:6px;"></span>
                             ${hall}
@@ -232,7 +235,7 @@
                             ${recruitInfo ? `<span>👥 募集：${recruitInfo}</span>` : ''}
                         </div>
                     </div>
-                    <div class="upcoming-card-badge" onclick="window._tabsOpenDrawer('${ev.start}', '${eventId}')">
+                    <div class="upcoming-card-badge" onclick="window._tabsOpenDrawer('${ev.startDate}', '${eventId}')">
                         <span class="badge-recruiting">募集中</span>
                         <span class="badge-days">${daysLeft}</span>
                     </div>
@@ -247,48 +250,11 @@
     // ============================================
     // カードからドロワーを直接起動するグローバル関数
     // ============================================
-    /**
-     * calendar.js の eventsData（フル情報）からイベントを検索。
-     * window.calendarEvents は簡略化されたリストのため、
-     * openDrawer が必要とする startDate/endDate/description/parsedSections 等が欠落する。
-     * eventsData[dateStr] から該当イベントを取得することで、
-     * カレンダーバッジクリック時と同じフル情報をドロワーに渡す。
-     */
-    function findFullEvent(startDateStr, eventId) {
-        // calendar.js の eventsData（日付→イベント配列のマップ）を取得
-        const eventsData = window.calendarApp?.eventsData;
-        if (eventsData) {
-            // startDateStr から YYYY-MM-DD を生成
-            const d = new Date(startDateStr);
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const dy = String(d.getDate()).padStart(2, '0');
-            const dateKey = `${y}-${m}-${dy}`;
-
-            const dayEvents = eventsData[dateKey];
-            if (dayEvents && dayEvents.length > 0) {
-                // 簡略リストからタイトルを取得してマッチ
-                const simplifiedEvents = window.calendarEvents || [];
-                const simpleEv = simplifiedEvents.find(ev => generateEventId(ev) === eventId);
-                if (simpleEv) {
-                    // title と hall でフルイベントを検索
-                    const fullEv = dayEvents.find(e =>
-                        e.title === simpleEv.title && e.hall === simpleEv.hall
-                    );
-                    if (fullEv) return fullEv;
-                }
-                // フォールバック: 最初のイベント
-                return dayEvents[0];
-            }
-        }
-        // 最終フォールバック: 簡略リストから
-        const events = window.calendarEvents || [];
-        return events.find(ev => generateEventId(ev) === eventId) || null;
-    }
-
     /** カードタップ → ドロワー起動 */
     window._tabsOpenDrawer = function (startDateStr, eventId) {
-        const ev = findFullEvent(startDateStr, eventId);
+        // calendarEvents はフルオブジェクトなので直接検索
+        const events = window.calendarEvents || [];
+        const ev = events.find(e => generateEventId(e) === eventId);
         if (!ev) return;
         const date = new Date(startDateStr);
         if (window.openDrawer) {
@@ -369,10 +335,12 @@
     /** 住所からエリアグループを判定（東京・神奈川・埼玉・千葉・その他） */
     function extractAreaGroup(address) {
         if (!address) return 'その他';
-        if (address.startsWith('東京都') || address.startsWith('東京')) return '東京';
-        if (address.startsWith('神奈川県') || address.startsWith('神奈川')) return '神奈川';
-        if (address.startsWith('埼玉県') || address.startsWith('埼玉')) return '埼玉';
-        if (address.startsWith('千葉県') || address.startsWith('千葉')) return '千葉';
+        // 郵便番号（〒xxx-xxxx）とスペースを除去
+        const cleaned = address.replace(/^〒?\d{3}-?\d{4}\s*/, '').trim();
+        if (cleaned.startsWith('東京都') || cleaned.startsWith('東京')) return '東京';
+        if (cleaned.startsWith('神奈川県') || cleaned.startsWith('神奈川')) return '神奈川';
+        if (cleaned.startsWith('埼玉県') || cleaned.startsWith('埼玉')) return '埼玉';
+        if (cleaned.startsWith('千葉県') || cleaned.startsWith('千葉')) return '千葉';
         return 'その他';
     }
 
@@ -632,11 +600,13 @@
         const now = new Date();
         now.setHours(0, 0, 0, 0);
 
+        const timeSlotLabels = { allday: '全日', morning: '午前', afternoon: '午後', evening: '夜間', morningAfternoon: '午前午後', afternoonEvening: '午後夜間' };
+
         // 未来のイベントのみ
         const futureEvents = events.filter(ev => {
-            const start = new Date(ev.start);
+            const start = new Date(ev.startDate);
             return start >= now;
-        }).sort((a, b) => new Date(a.start) - new Date(b.start));
+        }).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
         // キープ中のイベントをカウント
         const keeps = getKeepEvents();
@@ -677,7 +647,7 @@
         container.innerHTML = headerHtml + `
             <div class="recruitment-list">
                 ${displayEvents.map(ev => {
-                    const start = new Date(ev.start);
+                    const start = new Date(ev.startDate);
                     const month = start.getMonth() + 1;
                     const day = start.getDate();
                     const dayOfWeek = weekdays[start.getDay()];
@@ -685,24 +655,25 @@
                     const daysLeft = diff > 0 ? `あと${diff}日` : '本日';
                     const hall = ev.hall || ev.title || '';
                     const eventName = ev.eventName || '';
-                    const timeSlot = ev.timeSlot || '';
+                    const timeSlot = timeSlotLabels[ev.timeSlot] || ev.timeSlot || '';
 
                     // セクションドットの色
                     let dotClass = 'multiple';
-                    if (ev.sections) {
+                    const ps = ev.parsedSections;
+                    if (ps) {
                         const active = [];
-                        if (ev.sections.stage > 0) active.push('stage');
-                        if (ev.sections.sound > 0) active.push('sound');
-                        if (ev.sections.lighting > 0) active.push('lighting');
+                        if (ps.stage > 0) active.push('stage');
+                        if (ps.sound > 0) active.push('sound');
+                        if (ps.lighting > 0) active.push('lighting');
                         if (active.length === 1) dotClass = active[0];
                     }
 
                     let recruitInfo = '';
-                    if (ev.sections) {
+                    if (ps) {
                         const parts = [];
-                        if (ev.sections.stage > 0) parts.push(`舞台 ${ev.sections.stage}名`);
-                        if (ev.sections.sound > 0) parts.push(`音響 ${ev.sections.sound}名`);
-                        if (ev.sections.lighting > 0) parts.push(`照明 ${ev.sections.lighting}名`);
+                        if (ps.stage > 0) parts.push(`舞台 ${ps.stage}名`);
+                        if (ps.sound > 0) parts.push(`音響 ${ps.sound}名`);
+                        if (ps.lighting > 0) parts.push(`照明 ${ps.lighting}名`);
                         recruitInfo = parts.join('、');
                     }
 
@@ -715,11 +686,11 @@
                             <button class="keep-btn ${kept ? 'active' : ''}" data-event-id="${eventId}" onclick="event.stopPropagation(); window._tabsToggleKeep(this, '${eventId}');" aria-label="キープ">
                                 ${kept ? '★' : '☆'}
                             </button>
-                            <div class="upcoming-card-date" onclick="window._tabsOpenDrawer('${ev.start}', '${eventId}')">
+                            <div class="upcoming-card-date" onclick="window._tabsOpenDrawer('${ev.startDate}', '${eventId}')">
                                 <span class="upcoming-date-month">${month}/${day}</span>
                                 <span class="upcoming-date-day">（${dayOfWeek}）</span>
                             </div>
-                            <div class="upcoming-card-info" onclick="window._tabsOpenDrawer('${ev.start}', '${eventId}')">
+                            <div class="upcoming-card-info" onclick="window._tabsOpenDrawer('${ev.startDate}', '${eventId}')">
                                 <div class="upcoming-card-hall">
                                     <span class="legend-dot ${dotClass}" style="margin-right:6px;"></span>
                                     ${hall}
@@ -730,7 +701,7 @@
                                     ${recruitInfo ? `<span>👥 募集：${recruitInfo}</span>` : ''}
                                 </div>
                             </div>
-                            <div class="upcoming-card-badge" onclick="window._tabsOpenDrawer('${ev.start}', '${eventId}')">
+                            <div class="upcoming-card-badge" onclick="window._tabsOpenDrawer('${ev.startDate}', '${eventId}')">
                                 <span class="badge-recruiting">募集中</span>
                                 <span class="badge-days">${daysLeft}</span>
                             </div>

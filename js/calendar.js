@@ -539,18 +539,9 @@ function publishEventsToTabs() {
         eventsData[dateStr].forEach(ev => {
             if (!seen.has(ev.id)) {
                 seen.add(ev.id);
-                flat.push({
-                    id: ev.id,
-                    title: ev.title,
-                    hall: ev.hall,
-                    eventName: ev.eventName,
-                    start: ev.startDate,
-                    end: ev.endDate,
-                    section: ev.section,
-                    timeSlot: timeSlots[ev.timeSlot] || ev.timeSlot || '',
-                    sections: ev.parsedSections,
-                    juniorOk: ev.juniorOk
-                });
+                // フルイベントオブジェクトをそのまま公開
+                // drawer.js が startDate/endDate/description/parsedSections/capacity 等を参照するため
+                flat.push(ev);
             }
         });
     }
