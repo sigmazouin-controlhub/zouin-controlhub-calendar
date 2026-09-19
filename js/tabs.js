@@ -732,9 +732,6 @@
         const hall = localStorage.getItem('zouin_staff_hall') || '---';
         const isAdmin = window.isAdmin || localStorage.getItem('zouin_is_admin') === 'true';
 
-        // 申込履歴のレンダリング（将来API対応 - 現在はデータなし）
-        const applicationHistoryHtml = renderApplicationHistory();
-
         container.innerHTML = `
             <div class="mypage-header">
                 <div class="mypage-avatar">
@@ -761,11 +758,38 @@
                     <span class="mypage-info-value">${area}</span>
                 </div>
             </div>
-            ${applicationHistoryHtml}
+            <div id="applicationHistorySection">
+                <h4 class="mypage-section-title">📋 申込履歴</h4>
+                <div class="application-history-empty">読み込み中...</div>
+            </div>
             <button class="mypage-logout-btn" onclick="if(confirm('ログアウトしますか？')){localStorage.clear();location.reload();}">
                 ログアウト
             </button>
         `;
+
+        // 申込履歴をAPIから取得
+        loadApplicationHistory();
+    }
+
+    /**
+     * 申込履歴をGAS APIから取得して表示を更新
+     */
+    async function loadApplicationHistory() {
+        const staffName = window.loggedInStaffName || localStorage.getItem('zouin_staff_display_name') || '';
+        const historySection = document.getElementById('applicationHistorySection');
+        if (!staffName || !historySection) return;
+
+        try {
+            const result = await fetchFromGAS({ action: 'getMyApplications', staffName: staffName });
+            if (result.success && result.applications) {
+                historySection.innerHTML = renderApplicationHistory(result.applications);
+            } else {
+                historySection.innerHTML = renderApplicationHistory(null);
+            }
+        } catch (error) {
+            console.error('申込履歴取得エラー:', error);
+            historySection.innerHTML = renderApplicationHistory(null);
+        }
     }
 
     /**
