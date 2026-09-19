@@ -837,7 +837,6 @@
                                 <div class="application-history-hall">${item.hall}</div>
                                 <div class="application-history-event">${item.event}</div>
                             </div>
-                            <span class="application-status-badge ${statusClass}">${statusLabel}</span>
                         </div>
                     `;
                 }).join('')}
