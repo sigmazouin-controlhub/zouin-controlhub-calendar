@@ -2249,6 +2249,9 @@ body {
     flex-direction: column;
     gap: var(--spacing-sm);
     margin-bottom: var(--spacing-xl);
+    max-height: 400px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .application-history-item {
